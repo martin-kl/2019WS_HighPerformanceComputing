@@ -1,6 +1,7 @@
 #include <stdio.h>
 
-#define SIZE 2094910
+#define SIZE 2094200
+// at home 2094910 works, on gantenbein not!
 // #define SIZE 2094911 //is too much
 // an int-array with 2094911 entries (size) is simply
 // too large for the stack

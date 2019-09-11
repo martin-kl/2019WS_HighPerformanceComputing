@@ -36,8 +36,8 @@ long convertToInt(char *arg) {
 
 int main(int argc, char *argv[]) {
     char *progname;
-    long a;
-    long b;
+    long a = -1;
+    long b = -1;
 
     if(argc > 0) {
         progname = argv[0];
