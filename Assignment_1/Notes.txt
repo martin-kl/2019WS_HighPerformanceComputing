@@ -1,4 +1,4 @@
-Notes for Time:
+    Notes for Time:
 
 Times (measured on Gantenbein):
 -> Compiled with -O0:
@@ -14,7 +14,37 @@ Times (measured on Gantenbein):
 -> Compiled with -Og:
     between 0.535s and 0.552s
 
-Notes to assembly code:
-    the higher the optimization level, the smaller the assembly code
-    which makes sense but is also an indication that it is harder to 
-    find a bug in the optimized assembly code
+    Notes to time assembly code:
+the higher the optimization level, the smaller the assembly code
+which makes sense but is also an indication that it is harder to 
+find a bug in the optimized assembly code
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+
+    Notes for Inlining:
+[Benchmarked the 3 variants with hyperfine on Gantenbein]
+mainfile
+    mean: 0.3 - 0.5 ms but quite large deviation of +/- 1.0 ms
+    min ... max: 0.0 ms ... 3.5 ms
+
+separatefile
+    mean: 0.4 - 0.5 ms but again with +/- 1.0 ms
+    min ... max: 0.0 ms ... 3.5 ms
+
+inlined
+    mean: 0.4 - 0.5 ms also +/- 1.0 ms
+    min ... max: 0.0 ms ... 3.6 ms
+
+I benchmarked during a crowded Computer Lab session which could be a reason that I
+cannot really get any difference at all (or only very little difference).
+
+
+using nm to find examine the executables mul_cpx_mainfile and mul_cpx_separatefile:
+nm mul_cpx_mainfile:
+    I can find the method name of "mul_cpx" in the output as well as the "main" method
+    but nothing for "mul_cpx_mainfile"
+nm mul_cpx_separatefile:
+    I find again the method name "mul_cpx" as well as "main" 
+    but again nothing for "mul_cpx_separatefile"
+
+I compared the outputs of nm on both executables and they are (nearly) exactly the same except of some of the numbers in front of the symbols.
