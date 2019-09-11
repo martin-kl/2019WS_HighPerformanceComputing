@@ -1,0 +1,20 @@
+Notes for Time:
+
+Times (measured on Gantenbein):
+-> Compiled with -O0:
+    between 2.378s and 2.459s    
+-> Compiled with -O1:
+    between 0.265s and 0.281s
+-> Compiled with -O2:
+    between 939ns and 3336ns
+-> Compiled with -O3:
+    between 946ns and 3000ns
+-> Compiled with -Os:
+    between 0.268s and 0.270s
+-> Compiled with -Og:
+    between 0.535s and 0.552s
+
+Notes to assembly code:
+    the higher the optimization level, the smaller the assembly code
+    which makes sense but is also an indication that it is harder to 
+    find a bug in the optimized assembly code
