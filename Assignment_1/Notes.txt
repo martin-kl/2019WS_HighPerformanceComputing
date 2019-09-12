@@ -35,8 +35,8 @@ inlined
     mean: 0.4 - 0.5 ms also +/- 1.0 ms
     min ... max: 0.0 ms ... 3.6 ms
 
-I benchmarked during a crowded Computer Lab session which could be a reason that I
-cannot really get any difference at all (or only very little difference).
+I benchmarked both during a crowded Computer Lab session and on a different time 
+but was not really able to get any difference at all (or only very little difference).
 
 
 using nm to find examine the executables mul_cpx_mainfile and mul_cpx_separatefile:
