@@ -97,7 +97,7 @@ int main() {
     }
     printf("Results are correct!\n\n");
 
-    printf("Row[0]-Sum: %f,\t time needed to calculate all row-sums: %lis and %lins\n", sumrows[0], diffrows.tv_sec, diffrows.tv_nsec);
-    printf("Col[0]-Sum: %f,\t time needed to calculate all col-sums: %lis and %lins\n", sumcols[0], diffcols.tv_sec, diffcols.tv_nsec);
-    printf("Col[0]-Sum: %f,\t time needed to calculate all col-sums: %lis and %lins <-- with improved algorithm\n", sumcols2[0], diffcols2.tv_sec, diffcols2.tv_nsec);
+    printf("Row[0]-Sum: %f,\t time needed to calculate all row-sums: %lis and %fms\n", sumrows[0], diffrows.tv_sec, (diffrows.tv_nsec / 1000000.0));
+    printf("Col[0]-Sum: %f,\t time needed to calculate all col-sums: %lis and %fms\n", sumcols[0], diffcols.tv_sec, (diffcols.tv_nsec / 1000000.0));
+    printf("Col[0]-Sum: %f,\t time needed to calculate all col-sums: %lis and %fms <-- with improved algorithm\n", sumcols2[0], diffcols2.tv_sec, (diffcols2.tv_nsec / 1000000.0));
 }

@@ -58,9 +58,26 @@ I compared the outputs of nm on both executables and they are (nearly) exactly t
 
     Notes for Locality:
 
-Benchmarking both with timespec_get time on my own machine:
-row sum: ~1.2ms
-col sum: ~3ms with larger deviations ranging from 2.7ms up to 4ms
+Benchmarking both with timespec_get time on Gantenbein (-O2):
+row sum: ~1.7ms
+col sum: ~2.0ms with larger deviations ranging from 1.6ms up to 3.3
     which makes sense since we store the data in row order
 
---> Reimplement slower (column) summation...
+    --> Reimplement slower (column) summation...
+I improved the efficiency by iterating in the same way as in the rows_sum so I can
+use the data-locality. I have to jump to different sums[j] all the time but they are
+also stored sequentially so this is not really a problem.
+
+    achieved Timing - Improvement:
+col2 sum: ~ 0.85ms
+so we are even faster than in the row sum. This surprised me a little bit and after 
+comparing the code, the only difference is that the row_sum sums first into a local variable
+before writing this sum into the sum array. It seems that writing directly to the array 
+is more efficient.
+
+
+    Notes on -O0 compilation:
+Running the un-optimized program results in nearly the same execution time for the given
+row_sums and col_sums implementations. However, my improved version is notably faster than
+the row_sums implementation which surprised me. 
+Since the only real difference is the omission of the local sum calculation and instead writing directly to the given sum-array, this has to be the problem here.
