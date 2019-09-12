@@ -19,7 +19,9 @@ the higher the optimization level, the smaller the assembly code
 which makes sense but is also an indication that it is harder to 
 find a bug in the optimized assembly code
 
+
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+
 
     Notes for Inlining:
 [Benchmarked the 3 variants with hyperfine on Gantenbein]
@@ -48,3 +50,17 @@ nm mul_cpx_separatefile:
     but again nothing for "mul_cpx_separatefile"
 
 I compared the outputs of nm on both executables and they are (nearly) exactly the same except of some of the numbers in front of the symbols.
+
+
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+
+
+    Notes for Locality:
+
+Benchmarking both with timespec_get time on my own machine:
+row sum: ~1.2ms
+col sum: ~3ms with larger deviations ranging from 2.7ms up to 4ms
+    which makes sense since we store the data in row order
+
+--> Reimplement slower (column) summation...

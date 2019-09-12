@@ -1,14 +1,17 @@
 CTime	= time.c
+
 CInlMain= mul_cpx_mainfile.c
 CInlSep	= mul_cpx_separatefile.c mulcpx.c
 CInl	= mul_cpx_inlined.c
+
+CLocal	= locality.c
 
 CC		= gcc
 CFLAGS	= -O2
 
 .PHONY : clean
 
-all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined
+all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined locality
 
 # $@ = target
 # $< = source
@@ -27,6 +30,9 @@ mul_cpx_inlined :
 # mulcpx in separate file:
 mulcpx.o : mulcpx.c mulcpx.h
 
+locality :
+	$(CC) -Wall $(CFLAGS) $(CLocal) -o $@
+
 # also removes all *.o files
 clean:
-	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined
+	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined locality
