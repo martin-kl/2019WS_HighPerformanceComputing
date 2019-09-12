@@ -1,10 +1,10 @@
-CTime	= time.c
+CTime	= time.c time_diff.c
 
 CInlMain= mul_cpx_mainfile.c
 CInlSep	= mul_cpx_separatefile.c mulcpx.c
 CInl	= mul_cpx_inlined.c
 
-CLocal	= locality.c
+CLocal	= locality.c time_diff.c
 
 CC		= gcc
 CFLAGS	= -O2
@@ -32,6 +32,9 @@ mulcpx.o : mulcpx.c mulcpx.h
 
 locality :
 	$(CC) -Wall $(CFLAGS) $(CLocal) -o $@
+
+time_diff.o : time_diff.c time_diff.h
+
 
 # also removes all *.o files
 clean:
