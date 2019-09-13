@@ -25,9 +25,12 @@ int main() {
 
 
     //start calculation:
-    for(int i = 0; i < LENGTH; i++) {
-        asr[i] = (bsr[i] * csr[i]) - (bsi[i] * csi[i]);
-        asi[i] = (bsr[i] * csi[i]) + (bsi[i] * csr[i]);
+    //since the calculations only lasts for some ms we have to do this more often
+    for(int j = 0; j < 10000; j++) {
+        for(int i = 0; i < LENGTH; i++) {
+            asr[i] = (bsr[i] * csr[i]) - (bsi[i] * csi[i]);
+            asi[i] = (bsr[i] * csi[i]) + (bsi[i] * csr[i]);
+        }
     }
 
     printf("Inlined-calculation done.\n\n");

@@ -24,33 +24,31 @@ find a bug in the optimized assembly code
 
 
     Notes for Inlining:
+To get some time differences, every call of one of these programs starts 10.000 calculations.
+
 [Benchmarked the 3 variants with hyperfine on Gantenbein]
 mainfile
-    mean: 0.3 - 0.5 ms but quite large deviation of +/- 1.0 ms
-    min ... max: 0.0 ms ... 3.5 ms
+    mean: 481,1 ms +/-13,8 ms
+    min ... max: 458,3ms ... 505,1ms
 
 separatefile
-    mean: 0.4 - 0.5 ms but again with +/- 1.0 ms
-    min ... max: 0.0 ms ... 3.5 ms
+    mean: 591,3 ms +/-8,2 ms
+    min ... max: 580,9ms ... 604ms
 
 inlined
-    mean: 0.4 - 0.5 ms also +/- 1.0 ms
-    min ... max: 0.0 ms ... 3.6 ms
+    mean: 466,1 ms +/-12,4 ms
+    min ... max: 447,3ms ... 485,3ms
 
-I benchmarked both during a crowded Computer Lab session and on a different time 
-but was not really able to get any difference at all (or only very little difference).
+The time differences make sence: inlined code is faster than calling a method in mainfile.
+Separatefile is the slowest method since it calls a method all the time (symbol mul_cpx is still in nm output)
 
 
 using nm to find examine the executables mul_cpx_mainfile and mul_cpx_separatefile:
 nm mul_cpx_mainfile:
-    I can find the method name of "mul_cpx" in the output as well as the "main" method
-    but nothing for "mul_cpx_mainfile"
+    NOTE: we have to use static inline on mul_cpx_mainfile to get rid of the mul_cpx method name!
 nm mul_cpx_separatefile:
-    I find again the method name "mul_cpx" as well as "main" 
-    but again nothing for "mul_cpx_separatefile"
-
-I compared the outputs of nm on both executables and they are (nearly) exactly the same except of some of the numbers in front of the symbols.
-
+    I find the method name "mul_cpx" as well as "main" -> which is an indication that separatefile
+    calls a method mul_cps!!
 
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
@@ -81,3 +79,10 @@ Running the un-optimized program results in nearly the same execution time for t
 row_sums and col_sums implementations. However, my improved version is notably faster than
 the row_sums implementation which surprised me. 
 Since the only real difference is the omission of the local sum calculation and instead writing directly to the given sum-array, this has to be the problem here.
+
+
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+
+
+        Notes for Indirect Adressing:

@@ -2,7 +2,7 @@
 
 #define LENGTH 30000
 
-void mul_cpx( double * a_re, double * a_im, double * b_re, double * b_im, double * c_re, double * c_im) {
+static inline void mul_cpx( double * a_re, double * a_im, double * b_re, double * b_im, double * c_re, double * c_im) {
     *a_re = (*b_re * *c_re) - (*b_im * *c_im);
     *a_im = (*b_re * *c_im) + (*b_im * *c_re);
 }
@@ -29,9 +29,12 @@ int main() {
 
 
     //start calculation:
-    for(int i = 0; i < LENGTH; i++) {
-        mul_cpx(&asr[i], &asi[i], &bsr[i], &bsi[i], &csr[i], &csi[i]);
-        // printf("as[%d]: %.2f + %.2fi\n", i, asr[i], asi[i]);
+    //since the calculations only lasts for some ms we have to do this more often
+    for(int j = 0; j < 10000; j++) {
+        for(int i = 0; i < LENGTH; i++) {
+            mul_cpx(&asr[i], &asi[i], &bsr[i], &bsi[i], &csr[i], &csi[i]);
+            // printf("as[%d]: %.2f + %.2fi\n", i, asr[i], asi[i]);
+        }
     }
 
     printf("Mainfile-calculation done.\n\n");
