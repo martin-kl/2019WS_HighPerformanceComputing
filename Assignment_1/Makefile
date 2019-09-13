@@ -5,13 +5,14 @@ CInlSep	= mul_cpx_separatefile.c mulcpx.c
 CInl	= mul_cpx_inlined.c
 
 CLocal	= locality.c time_diff.c
+CAdress	= adressing.c time_diff.c
 
 CC		= gcc
 CFLAGS	= -O2
 
 .PHONY : clean
 
-all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined locality
+all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined locality adressing
 
 # $@ = target
 # $< = source
@@ -33,9 +34,12 @@ mulcpx.o : mulcpx.c mulcpx.h
 locality :
 	$(CC) -Wall $(CFLAGS) $(CLocal) -o $@
 
+adressing :
+	$(CC) -Wall $(CFLAGS) $(CAdress) -o $@
+
 time_diff.o : time_diff.c time_diff.h
 
 
 # also removes all *.o files
 clean:
-	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined locality
+	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined locality adressing
