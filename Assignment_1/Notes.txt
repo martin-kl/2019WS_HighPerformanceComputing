@@ -86,3 +86,27 @@ Since the only real difference is the omission of the local sum calculation and 
 
 
         Notes for Indirect Adressing:
+
+    Times with -O2 flag:
+'random' indirect adressing:    1s 373ms
+sequential indirect adressing:  0s 671ms
+direct adressing:               0s 560ms
+
+    Times with -O0 flag:
+'random' indirect adressing:    3s 243ms
+sequential indirect adressing:  2s 936ms
+direct adressing:               2s 587ms
+
+Indirect adressing is slower than direct adressing which makes sense.
+We can also see that the compiler does a lot of optimization in the sequential indirect
+adressing case which gets nearly as fast as the direct adressing case.
+
+Difference -O2 vs -O0: notably, compiler can do a lot especially in direct adressing & seq. indirect cases!
+
+
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+
+        Notes on HDD vs SSD:
+
+

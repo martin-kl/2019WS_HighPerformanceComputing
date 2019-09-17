@@ -6,11 +6,17 @@
 #define SIZE 1000000 //1 million
 #define CALLS 1000
 
-void inc1(int *x, int *y, int *p, int a) {
+void incIndirect(int *x, int *y, int *p, int a) {
     int jx;
     for (size_t kx = 0; kx < SIZE; ++kx) {
         jx = p[kx];
         y[jx] += a * x[jx];
+    }
+}
+
+void incDirect(int *x, int *y, int a) {
+    for (size_t kx = 0; kx < SIZE; ++kx) {
+        y[kx] += a * x[kx];
     }
 }
 
@@ -53,17 +59,19 @@ int main() {
     timespec_get(&start, TIME_UTC);
     for(size_t i = 0; i < CALLS; i++) {
         if(i % 2 == 0) 
-            inc1(x, y, p, 3);
+            incIndirect(x, y, p, 3);
         else
-            inc1(x, y, p, -2);
+            incIndirect(x, y, p, -2);
     }
     timespec_get(&end, TIME_UTC);
     timespec_diff(&start, &end, &diff1);
     
-    printf("First version completed.\n");
+    printf("First version of indirect adressing completed.\n");
+
 
     //reset values
     initialize(x, y);
+
 
     //second version:
     for (ix = 0; ix < SIZE; ++ix)
@@ -73,22 +81,38 @@ int main() {
     timespec_get(&start, TIME_UTC);
     for(size_t i = 0; i < CALLS; i++) {
         if(i % 2 == 0) 
-            inc1(x, y, p, 3);
+            incIndirect(x, y, p, 3);
         else
-            inc1(x, y, p, -2);
+            incIndirect(x, y, p, -2);
     }
     timespec_get(&end, TIME_UTC);
     timespec_diff(&start, &end, &diff2);
  
-    printf("Second version completed.\n");
+    printf("Second version of indirect adressing completed.\n");
+
 
     //reset values
     initialize(x, y);
 
 
-    //TODO direct access implementation
-    
 
-    printf("Time needed for 1st impl.: %lis and %fms <- 'random' addressing\n", diff1.tv_sec, (diff1.tv_nsec / 1000000.0));
-    printf("Time needed for 2nd impl.: %lis and %fms <- seq. addressing\n", diff2.tv_sec, (diff2.tv_nsec / 1000000.0));
+    printf("starting to call direct adressing version...\n");
+    timespec_get(&start, TIME_UTC);
+    for(size_t i = 0; i < CALLS; i++) {
+        if(i % 2 == 0) 
+            incDirect(x, y, 3);
+        else
+            incDirect(x, y, -2);
+    }
+    timespec_get(&end, TIME_UTC);
+    timespec_diff(&start, &end, &diff3);
+ 
+    printf("Direct adressing version completed.\n");   
+
+    printf("\n\n");
+
+
+    printf("Time needed for 1st impl.: %lis and %fms <- 'random' indirect addressing\n", diff1.tv_sec, (diff1.tv_nsec / 1000000.0));
+    printf("Time needed for 2nd impl.: %lis and %fms <- seq. indirect addressing\n", diff2.tv_sec, (diff2.tv_nsec / 1000000.0));
+    printf("Time needed for 3rd impl.: %lis and %fms <- direct addressing\n", diff3.tv_sec, (diff3.tv_nsec / 1000000.0));
 }
