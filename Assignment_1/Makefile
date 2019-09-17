@@ -8,13 +8,14 @@ CLocal	= locality.c time_diff.c
 CAdress	= adressing.c time_diff.c
 Chddssd	= hddssd.c time_diff.c
 FILES	= hdd_testfile /run/mount/scratch/hpcuser046/ssd_testfile
+Cvalgr	= valgrind.c
 
 CC		= gcc
-CFLAGS	= -O2
+CFLAGS	= -O0
 
 .PHONY : clean
 
-all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd
+all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd valgr
 
 # $@ = target
 # $< = source
@@ -42,9 +43,13 @@ adressing :
 hddssd :
 	$(CC) -Wall $(CFLAGS) $(Chddssd) -o $@
 
+valgr :
+	$(CC) -Wall $(CFLAGS) $(Cvalgr) -o $@ -g
+# -g for valgrind to include debug info
+
 time_diff.o : time_diff.c time_diff.h
 
 
 # also removes all *.o files
 clean:
-	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd $(FILES)
+	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd $(FILES) valgr
