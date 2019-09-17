@@ -6,13 +6,15 @@ CInl	= mul_cpx_inlined.c
 
 CLocal	= locality.c time_diff.c
 CAdress	= adressing.c time_diff.c
+Chddssd	= hddssd.c time_diff.c
+FILES	= hdd_testfile /run/mount/scratch/hpcuser046/ssd_testfile
 
 CC		= gcc
 CFLAGS	= -O2
 
 .PHONY : clean
 
-all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined locality adressing
+all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd
 
 # $@ = target
 # $< = source
@@ -37,9 +39,12 @@ locality :
 adressing :
 	$(CC) -Wall $(CFLAGS) $(CAdress) -o $@
 
+hddssd :
+	$(CC) -Wall $(CFLAGS) $(Chddssd) -o $@
+
 time_diff.o : time_diff.c time_diff.h
 
 
 # also removes all *.o files
 clean:
-	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined locality adressing
+	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd $(FILES)

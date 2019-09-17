@@ -108,5 +108,30 @@ Difference -O2 vs -O0: notably, compiler can do a lot especially in direct adres
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 
         Notes on HDD vs SSD:
+    Times with -O2 flag:
+HDD W:  66ms
+HDD R:  61ms
+SSD W:  55ms
+SSD R:  61ms
 
+Writing to SSD is faster (as expected) but reading from SSD is as fast as reading from an HDD raid which is quite surprising to me !!!
+I tried this multiple times while removing the files between the runs and got this result consistently!
 
+Possibly since these are fast(er) Server-Disks + the RAID 5 helps for the read speed ?!
+
+copy the folder /usr/include to your home director,
+.) measure the time of copying 10 times this copy to another folder called include_copy,
+    used "time" function and copy script that copies folder & deletes it 10 times
+    real:   7.444s
+    user:   0.799
+    sys:    6.521s
+
+copy the folder /usr/include to your directory in /run/mount/scratch,
+.) measure the time of copying 10 times this copy to another folder called include_copy.
+    real::  6.217s
+    user:   0.743s
+    sys:    5.360s
+
+We see again that copying is indeed faster on the SSD than on the HDD but this HDD does not
+seem to be a slow one since the difference is not that huge.
+Normally SSDs are way faster on random access but here we had only sequential IO.
