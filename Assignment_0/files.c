@@ -49,9 +49,9 @@ int main() {
 
     int i = 0;
     int j = 0;
-    while(fscanf(fp, "%d", &as[i][j]) == 1) {
-        //printf("found: %d\n", as[i][j]);
-        assert(as[i][j] == as[i][j]);
+    while(fscanf(fp, "%d", &as2[i][j]) == 1) {
+        //printf("found: %d\n", as2[i][j]);
+        assert(as2[i][j] == as[i][j]);
         j++;
         if(j == SIZE) {
             i++;
