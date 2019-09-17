@@ -1,6 +1,6 @@
     Notes for Time:
 
-Times (measured on Gantenbein):
+Times (measured on Gantenbein) ON OLD_VERSION (printing time after every sum calc):
 -> Compiled with -O0:
     between 2.378s and 2.459s    
 -> Compiled with -O1:
@@ -13,6 +13,14 @@ Times (measured on Gantenbein):
     between 0.268s and 0.270s
 -> Compiled with -Og:
     between 0.535s and 0.552s
+
+Time on NEW VERSION (updated assignment description containing looping and avg calculation):
+-> Compiled with -O1:
+   287.35ms for 100 iterations 
+-> Compiled with -O2:
+    0.001390ms for 100 Iterations
+-> Compiled with -O3:
+    0.001446ms for 100 Iterations
 
     Notes to time assembly code:
 the higher the optimization level, the smaller the assembly code
