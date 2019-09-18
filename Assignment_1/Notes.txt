@@ -70,10 +70,9 @@ nm mul_cpx_separatefile:
 
     Notes for Locality:
 
-Benchmarking both with timespec_get time on Gantenbein (-O2):
-row sum: ~1.7ms
-col sum: ~2.0ms with larger deviations ranging from 1.6ms up to 3.3
-    which makes sense since we store the data in row order
+Benchmarking both with timespec_get time on Gantenbein (-O2) and 100 iterations each:
+row sum: 1.11ms
+col sum: 1.56ms which makes sense since we store the data in row order
 
     --> Reimplement slower (column) summation...
 I improved the efficiency by iterating in the same way as in the rows_sum so I can
@@ -81,11 +80,11 @@ use the data-locality. I have to jump to different sums[j] all the time but they
 also stored sequentially => not really a problem.
 
     achieved Timing - Improvement:
-col2 sum: ~ 0.85ms
-so we are even faster than in the row sum. This surprised me a little bit and after 
+col2 sum: 0.57ms
+so we are notably faster than in the row sum. This surprised me a little bit and after 
 comparing the code, the only difference is that the row_sum sums first into a local variable
 before writing this sum into the sum array. It seems that writing directly to the array 
-is more efficient.
+is way  more efficient.
 
 
     Notes on -O0 compilation:
@@ -128,10 +127,10 @@ HDD R:  61ms
 SSD W:  55ms
 SSD R:  61ms
 
-Writing to SSD is faster (as expected) but reading from SSD is as fast as reading from an HDD raid which is quite surprising to me !!!
-I tried this multiple times while removing the files between the runs and got this result consistently!
+Writing to SSD is faster (as expected) but reading from SSD is as fast as reading from an HDD RAID which is quite surprising to me !!!
+[I tried this multiple times while removing the files between the runs and got this result consistently]
 
-Possibly since these are fast(er) Server-Disks + the RAID 5 helps for the read speed ?!
+Possibly since these are fast(er) Server-Disks + the RAID 5?!
 
 copy the folder /usr/include to your home director,
 .) measure the time of copying 10 times this copy to another folder called include_copy,
