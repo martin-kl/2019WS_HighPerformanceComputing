@@ -143,3 +143,34 @@ copy the folder /usr/include to your directory in /run/mount/scratch,
 We see again that copying is indeed faster on the SSD than on the HDD but this HDD does not
 seem to be a slow one since the difference is not that huge.
 Normally SSDs are way faster on random access but here we had only sequential IO.
+
+
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+
+        Notes on Valgrind:
+
+Compile the program with optimization level 0 and with the flag -g, then run the program with valgrind memcheck.
+
+Repeat compilation & running with valgrind after making one of the following modifications:
+.) Comment out the initialization of as.
+valgrind detects the use of an uninitialized value on the first access to the array.
+
+.) Comment out the freeing of as.
+valgrind detects a memory leak with "definitely lost: 40 bytes in 1 blocks" and even tells us where this lost bytes are allocated.
+
+.) Amend the code with an additional free(as) at the end.
+valgrind detects an "Invalid free()..." operation and gives us the line again.
+
+
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+
+        Notes on GDB:
+
+This starts the debugger gdb. Follow the next steps:
+
+.) Press ‘r’ and enter to start running the program
+.) Once the execution stops (because of invalid memory access), type “focus” and press enter.
+.) Type “p as” and press enter to see the print the value of as at the time the program aborted execution.
+    -> ATTENTION: I did not get any output besides "The history is empty."

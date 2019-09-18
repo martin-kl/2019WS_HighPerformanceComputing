@@ -9,6 +9,7 @@ CAdress	= adressing.c time_diff.c
 Chddssd	= hddssd.c time_diff.c
 FILES	= hdd_testfile /run/mount/scratch/hpcuser046/ssd_testfile
 Cvalgr	= valgrind.c
+Cgdb	= gdb_invalid_access.c
 
 CC		= gcc
 CFLAGS	= -O0
@@ -47,9 +48,12 @@ valgr :
 	$(CC) -Wall $(CFLAGS) $(Cvalgr) -o $@ -g
 # -g for valgrind to include debug info
 
+gdb_invalid_access :
+	$(CC) -Wall $(CFLAGS) $(Cgdb) -o $@ -g
+
 time_diff.o : time_diff.c time_diff.h
 
 
 # also removes all *.o files
 clean:
-	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd $(FILES) valgr
+	rm -f time mul_cpx_mainfile *.o mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd $(FILES) valgr gdb_invalid_access

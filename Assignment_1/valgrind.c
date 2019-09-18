@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 int main() {
+    //int * as;
     int * as = (int*)malloc(10*sizeof(int));
     int sum = 0;
 
@@ -12,4 +13,5 @@ int main() {
       sum += as[ix];
 
     free(as);
+    //free(as);
 }
