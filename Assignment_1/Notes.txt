@@ -15,12 +15,18 @@ Times (measured on Gantenbein) ON OLD_VERSION (printing time after every sum cal
     between 0.535s and 0.552s
 
 Time on NEW VERSION (updated assignment description containing looping and avg calculation):
+-> Compiled with -O0:
+   2394.45ms    on avg over 100 iterations 
 -> Compiled with -O1:
-   287.35ms for 100 iterations 
+   287.35ms     on avg over 100 iterations 
 -> Compiled with -O2:
-    0.001390ms for 100 Iterations
+    0.001390ms  on avg over 100 Iterations
 -> Compiled with -O3:
-    0.001446ms for 100 Iterations
+    0.001446ms  on avg over 100 Iterations
+-> Compiled with -Os:
+    0.001365ms  on avg over 100 Iterations
+-> Compiled with -Og:
+    555.21ms  on avg over 100 Iterations
 
     Notes to time assembly code:
 the higher the optimization level, the smaller the assembly code
@@ -72,7 +78,7 @@ col sum: ~2.0ms with larger deviations ranging from 1.6ms up to 3.3
     --> Reimplement slower (column) summation...
 I improved the efficiency by iterating in the same way as in the rows_sum so I can
 use the data-locality. I have to jump to different sums[j] all the time but they are
-also stored sequentially so this is not really a problem.
+also stored sequentially => not really a problem.
 
     achieved Timing - Improvement:
 col2 sum: ~ 0.85ms

@@ -12,11 +12,11 @@ Cvalgr	= valgrind.c
 Cgdb	= gdb_invalid_access.c
 
 CC		= gcc
-CFLAGS	= -O0
+CFLAGS	= -O2
 
 .PHONY : clean
 
-all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd valgr
+all : time mul_cpx_mainfile mul_cpx_separatefile mul_cpx_inlined locality adressing hddssd valgr gdb_invalid_access
 
 # $@ = target
 # $< = source

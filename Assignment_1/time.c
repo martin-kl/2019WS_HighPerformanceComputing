@@ -2,7 +2,7 @@
 #include <time.h>
 #include "time_diff.h"
 
-#define LOOP 50
+#define LOOP 100
 
 int main() {
     unsigned long sum;
@@ -18,10 +18,9 @@ int main() {
         }
     }
     printf("Last Sum: %lu\n\n", sum);
-
     timespec_get(&end, TIME_UTC);
     timespec_diff(&start, &end, &diff);
-    printf("Overall Time needed: %lis and %lins\n", diff.tv_sec, diff.tv_nsec);
+    printf("Overall time needed for %d iterations: %lis and %lins\n", LOOP, diff.tv_sec, diff.tv_nsec);
     double avg = diff.tv_sec * 1000;
     avg += (diff.tv_nsec / 1000000.0);
     avg /= LOOP;
