@@ -5,6 +5,33 @@
 #include <errno.h>
 #include <limits.h>
 
+
+//--    prototypes              ///{{{1///////////////////////////////////////////
+
+long convertToInt(char *arg);
+void parseArguments(int argc, char *argv[], char *progname, short int *t, int*l, short int *poly);
+
+
+//--    main()              ///{{{1///////////////////////////////////////////
+
+int main(int argc, char *argv[]) {
+    char *progname;
+    short int t = 0;
+    int l = 0; //l can be 100.000 -> short int would be too small
+    short int poly = 0;
+
+    //get program name
+    if(argc > 0) {
+        progname = argv[0];
+    } else {
+        fprintf(stderr, "Error: no program name can be found\n");
+        exit(1);
+    }
+    parseArguments(argc, argv, progname, &t, &l, &poly);
+    printf("T is %d, L is %d and poly is %d\n", t, l, poly);
+}
+
+
 long convertToInt(char *arg) {
     char *endptr;
     long number;
@@ -63,19 +90,4 @@ void parseArguments(int argc, char *argv[], char *progname, short int *t, int*l,
         exit(1);
     }}
 
-int main(int argc, char *argv[]) {
-    char *progname;
-    short int t = 0;
-    int l = 0; //l can be 100.000 -> short int would be too small
-    short int poly = 0;
 
-    //get program name
-    if(argc > 0) {
-        progname = argv[0];
-    } else {
-        fprintf(stderr, "Error: no program name can be found\n");
-        exit(1);
-    }
-    parseArguments(argc, argv, progname, &t, &l, &poly);
-    printf("T is %d, L is %d and poly is %d\n", t, l, poly);
-}
