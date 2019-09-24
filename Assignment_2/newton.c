@@ -4,15 +4,18 @@
 #include <unistd.h>
 #include <errno.h>
 #include <limits.h>
+#include <time.h> // for nanosleep
 
 
-//--    prototypes              ///{{{1///////////////////////////////////////////
+//--    prototypes              //////////////////////////////////////////////////
 
 long convertToInt(char *arg);
 void parseArguments(int argc, char *argv[], char *progname, short int *t, int*l, short int *poly);
 
 
-//--    main()              ///{{{1///////////////////////////////////////////
+
+//--    main()              //////////////////////////////////////////////////
+
 
 int main(int argc, char *argv[]) {
     char *progname;
@@ -30,6 +33,9 @@ int main(int argc, char *argv[]) {
     parseArguments(argc, argv, progname, &t, &l, &poly);
     printf("T is %d, L is %d and poly is %d\n", t, l, poly);
 }
+
+
+//--    Methods              //////////////////////////////////////////////////
 
 
 long convertToInt(char *arg) {
