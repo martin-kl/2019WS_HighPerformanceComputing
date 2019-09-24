@@ -4,7 +4,7 @@ FILES	=
 CC		= gcc
 CFLAGS	= -O0
 
-.PHONY : clean
+.PHONY : clean clear
 
 all : newton
 
@@ -16,3 +16,6 @@ newton :
 # also removes all *.o files
 clean:
 	rm -f newton $(FILES) *.o
+
+clear:
+	rm -f newton_*.ppm
