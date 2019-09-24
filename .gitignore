@@ -1,6 +1,8 @@
 # Prerequisites
 *.d
 
+.vscode/*
+
 # VIM swp files
 *.swp
 
@@ -55,3 +57,4 @@ Mkfile.old
 dkms.conf
 flint2/
 arb/
+Assignment_2/newton
