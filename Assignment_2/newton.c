@@ -160,14 +160,18 @@ void *write_method(void *args)
     }
     //write headers
     //TODO maximal color value has to be in line 3 - & check for return value ?!
-    fprintf(attr_file, "P3\n");
-    fprintf(conv_file, "P3\n");
+    char header_first[3] = "P3\n";
+    fwrite(header_first, sizeof(char), 3, attr_file);
+    fwrite(header_first, sizeof(char), 3, conv_file);
 
-    fprintf(attr_file, "%d %d\n", nmb_lines, nmb_lines);
-    fprintf(conv_file, "%d %d\n", nmb_lines, nmb_lines);
+    char header_second[4];
+    sprintf(header_second, "%d %d\n", nmb_lines, nmb_lines);
+    fwrite(header_second, sizeof(char), 4, attr_file);
+    fwrite(header_second, sizeof(char), 4, conv_file);
 
-    fprintf(attr_file, "%d\n", 10);
-    fprintf(conv_file, "%d\n", 2);
+    //Attention: 10\n counts as 3 characters - so we have to later on set this value correct
+    fwrite("10\n", sizeof(char), 3, attr_file);
+    fwrite("3\n", sizeof(char), 2, conv_file);
 
     char *item_done_loc = (char *)calloc(nmb_lines, sizeof(char));
     for (size_t ix = 0; ix < nmb_lines;)
@@ -201,11 +205,14 @@ void *write_method(void *args)
             for (size_t j = 0; j < nmb_lines; j++)
             {
                 //TODO this is just for testing output
-                fprintf(attr_file, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
-                fprintf(conv_file, "%d %d %d ", res_conv[j], res_conv[j], res_conv[j]);
+                char temp[6];
+                sprintf(temp, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
+                fwrite(temp, sizeof(char), 6, attr_file);
+                sprintf(temp, "%d %d %d ", res_conv[j], res_conv[j], res_conv[j]);
+                fwrite(temp, sizeof(char), 6, conv_file);
             }
-            fprintf(attr_file, "\n");
-            fprintf(conv_file, "\n");
+            fwrite("\n", sizeof(char), 1, attr_file);
+            fwrite("\n", sizeof(char), 1, conv_file);
 
             free(res_attr);
             free(res_conv);
