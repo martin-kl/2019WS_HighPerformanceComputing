@@ -1,5 +1,4 @@
 Cnewton	= newton.c
-FILES	= 
 
 CC		= gcc
 CFLAGS	= -O0
