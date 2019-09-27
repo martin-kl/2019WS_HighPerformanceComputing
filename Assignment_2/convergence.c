@@ -16,7 +16,7 @@ int main(){
 															{1,-1,I,-I,(1 + I)/sqrt(2),(-1 - I)/sqrt(2),(1 - I)/sqrt(2),(-1 + I)/sqrt(2),0}, // roots for x^8 - 1, d = 8
 															{1,-cos(M_PI/9) - I*sin(M_PI/9),0.5*sqrt(3)*sin(M_PI/9) + 0.5*cos(M_PI/9) + I*(0.5*sqrt(3)*cos(M_PI/9) - 0.5*sin(M_PI/9)),-0.5 - 0.5*I*sqrt(3),sin(M_PI/18) + I*cos(M_PI/18),sin(M_PI/18) - I*cos(M_PI/18),-0.5* + 0.5*I*sqrt(3),0.5*sqrt(3)*sin(M_PI/9) + 0.5*cos(M_PI/9) + I*(0.5*sin(M_PI/9) - 0.5*sqrt(3)*cos(M_PI/9)),-cos(M_PI/9) + I*sin(M_PI/9)}}; // roots for x^9 - 1, d = 9
 
-	size_t d = 3;
+	size_t d = 9;
 	double complex x0 = -3 + 1*I;
 	double complex x1;
 	double epsilon = 0.001;
