@@ -29,8 +29,8 @@ int nmb_lines = 0;         //nmb_lines can be 100.000 -> short int would be too 
 short int poly = 0;
 
 //TODO int could be completely wrong, just for testing
-short int **attractors;
-short int **convergences;
+short int **attractors;// roots
+short int **convergences;// number iterations
 
 char *item_done;
 
@@ -116,6 +116,14 @@ void *compute_main(void *args)
         short int *attractor = (short int *)malloc(sizeof(short int) * nmb_lines);   //nmb_lines = nmb_rows
         short int *convergence = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
 
+        //function to compute roots
+        //arguments: hardcoded value of roots for the given poly
+        //while the difference between the current step of newtons
+        //method and any of the roots is greater than 10^-3
+        //keep computing next iterations
+        //store the number of iterations --> convergences
+        //store or point to the value of the closest root when convergences
+        //criteria is reached, or to the value for the exceptions
         //just for now to be able to write
         for (size_t cx = 0; cx < nmb_lines; ++cx)
         {
@@ -281,7 +289,6 @@ void parseArguments(int argc, char *argv[], char *progname, short int *nmb_threa
         exit(1);
     }
     *poly = convertToInt(argv[optind]);
-
     //check for validity of arguments:
     if (*nmb_threads <= 0)
     {
