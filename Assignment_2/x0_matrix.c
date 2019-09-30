@@ -7,7 +7,7 @@
 int main() {
   double complex *x_0entries = (double complex*) malloc(MAX_LINES*MAX_LINES*sizeof(double complex));
   double complex **x_0 = (double complex**) malloc(MAX_LINES*sizeof(double complex*));
-  int l = 10; // the parsed argument for the lines
+  int l = 2; // the parsed argument for the lines
   double complex div = (double complex) l - 1;
 
   for ( size_t ix = 0, jx = 0; ix < MAX_LINES; ++ix, jx+=MAX_LINES )
@@ -16,7 +16,8 @@ int main() {
   for ( size_t ix = 0; ix < l; ++ix ){
     for ( size_t jx = 0; jx < l; ++jx ){
       x_0[ix][jx] = -2 + 2*I + (double complex)jx*4/div - (double complex)ix*4*I/div;
-      printf("(%0.3f,%0.3fi) ",creal(x_0[ix][jx]),cimag(x_0[ix][jx]));
+      double complex x0 = x_0[ix][jx];
+      printf("(%0.3f,%0.3fi) ",creal(x0),cimag(x0));
       }
       printf("\n");
   }
