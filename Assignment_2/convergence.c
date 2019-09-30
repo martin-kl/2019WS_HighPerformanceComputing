@@ -17,7 +17,7 @@ int main(){
 															{1,-1,I,-I,0.7071067811 + 0.7071067811*I,-0.7071067811 - 0.7071067811*I,0.7071067811 - 0.7071067811*I,-0.7071067811 + 0.7071067811*I,0}, // roots for x^8 - 1, d = 8
 															{1,-0.9396926207 - 0.3420201433*I,0.7660444431 + 0.6427876096*I,-0.5 - 0.8660254037*I,0.1736481776 + 0.9848077530*I,0.1736481776 - 0.9848077530*I,-0.5 + 0.8660254037*I,0.7660444431 - 0.6427876096*I,-0.9396926207 + 0.3420201433*I}}; // roots for x^9 - 1, d = 9
 
-	size_t d = 9;
+	size_t d = 3;
 	double complex x0 = -3 + 1*I;
 	double complex x1;
 	double epsilon = 0.001;
@@ -32,12 +32,13 @@ int main(){
 	 	printf("%.15f, %.15f\n", creal(x1),cimag(x1));
 
 		for (size_t ix = 0; ix < d; ix++) {
-			if (cabs(x1 - root[d-1][ix] ) <= epsilon) {
+
+			if (creal(x1 - root[d-1][ix])*creal(x1 - root[d-1][ix]) + cimag(x1 - root[d-1][ix])*cimag(x1 - root[d-1][ix]) <= epsilon*epsilon) {
 				printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[d-1][ix]),cimag(root[d-1][ix]));
 				conv = 1;
 				break;
 			}
-			if(cabs(creal(x1)) >= n_root || cabs(cimag(x1)) >= n_root || cabs(x1) <= 0.001){
+			if(creal(x1) >= n_root || creal(x1) <= -n_root || cimag(x1) >= n_root || cimag(x1) <= -n_root || (creal(x1)*creal(x1) + cimag(x1)*cimag(x1)) <= epsilon*epsilon){ //trying not to use cabs()
 				printf("special case x1 >= 10000000000\n");
 				conv = 1;
 				break;
