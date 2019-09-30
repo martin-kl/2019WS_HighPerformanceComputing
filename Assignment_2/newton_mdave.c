@@ -52,8 +52,7 @@ int main() {
     double complex z = 1.0 + 1.0 * I;
     double d = 5.0;
     double complex res;
-	
-	int c = 12;
+    int c = 12;
 	
     timespec_get(&start, TIME_UTC);
     for (size_t i = 0; i < 1; ++i) {
