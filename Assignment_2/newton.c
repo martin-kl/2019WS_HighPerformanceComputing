@@ -14,7 +14,8 @@
 long convertToInt(char *arg);
 /*
  */
-void parseArguments(int argc, char *argv[], char *progname, short int *nmb_threads, int *nmb_lines, short int *poly);
+void parseArguments(int argc, char *argv[], char *progname, 
+    short unsigned int *nmb_threads, unsigned int *nmb_lines, short unsigned int *poly);
 
 /*
  */
@@ -24,11 +25,12 @@ void *compute_main(void *args);
  */
 void *write_method(void *args);
 
-short int nmb_threads = 0; //number of threads
-int nmb_lines = 0;         //nmb_lines can be 100.000 -> short int would be too small
-short int poly = 0;
+short unsigned int nmb_threads = 0; //number of threads
+unsigned int nmb_lines = 0;         //nmb_lines can be 100.000 -> short int would be too small
+short unsigned int poly = 0;
 
-//TODO int could be completely wrong, just for testing
+//TODO check if these data types are correct / perfect for us
+// [Martin:] since we have not so many roots char should be enough ?!
 short int **attractors;// roots
 short int **convergences;// number iterations
 
@@ -60,15 +62,14 @@ int main(int argc, char *argv[])
     printf("T is %d, L is %d and poly is %d\n", nmb_threads, nmb_lines, poly);
 
     //malloc memory for writing
-    attractors = malloc(sizeof(short int) * nmb_lines);
-    convergences = malloc(sizeof(short int) * nmb_lines);
+    attractors = malloc(sizeof(short int *) * nmb_lines);
+    convergences = malloc(sizeof(short int *) * nmb_lines);
     item_done = calloc(nmb_lines, sizeof(char)); //use calloc here so it is for sure 0
 
     //create nmb_threads compute threads and one writing thread
     compute_threads = (pthread_t *)malloc(sizeof(pthread_t) * nmb_threads);
     for (size_t tx = 0; tx < nmb_threads; ++tx)
     {
-        printf("creating thread %ld\n", tx);
         size_t *args = malloc(sizeof(size_t));
         *args = tx;
         pthread_create(&compute_threads[tx], NULL, compute_main, (void *)args);
@@ -81,13 +82,13 @@ int main(int argc, char *argv[])
     {
         if ((ret = pthread_join(compute_threads[tx], NULL)))
         {
-            printf("Error joining one of the compute threads: %d\n", ret);
+            fprintf(stderr, "Error joining one of the compute threads: %d\n", ret);
             exit(EXIT_FAILURE);
         }
     }
     if ((ret = pthread_join(write_thread, NULL)))
     {
-        printf("Error joining write thread: %d\n", ret);
+        fprintf(stderr, "Error joining write thread: %d\n", ret);
         exit(EXIT_FAILURE);
     }
     pthread_mutex_destroy(&item_done_mutex);
@@ -113,10 +114,8 @@ void *compute_main(void *args)
     {
         //printf("\tThread %ld calculates number for row %ld\n", offset, ix);
 
-        //TODO check later on if we should free these pointers
-        //TODO also check if short int is correct type
-        short int *attractor = (short int *)malloc(sizeof(short int) * nmb_lines);   //nmb_lines = nmb_rows
-        short int *convergence = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int * attractor = (short int*)malloc(sizeof(short int) * nmb_lines);   //nmb_lines = nmb_rows
+        short int * convergence = (short int*)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
 
         //function to compute roots
         //arguments: hardcoded value of roots for the given poly
@@ -153,9 +152,9 @@ void *write_method(void *args)
 
     FILE *attr_file;
     FILE *conv_file;
-    char attr_file_name[24];
+    char attr_file_name[25]; //we need 25 chars since sprintf automatically null terminates!!
     sprintf(attr_file_name, "newton_attractors_x%hu.ppm", poly);
-    char conv_file_name[25];
+    char conv_file_name[26];
     sprintf(conv_file_name, "newton_convergence_x%hu.ppm", poly);
 
     short int *res_attr; //used to point to current row to handle
@@ -177,7 +176,7 @@ void *write_method(void *args)
     fwrite(header_first, sizeof(char), 3, attr_file);
     fwrite(header_first, sizeof(char), 3, conv_file);
 
-    char header_second[4];
+    char header_second[5];
     sprintf(header_second, "%d %d\n", nmb_lines, nmb_lines);
     fwrite(header_second, sizeof(char), 4, attr_file);
     fwrite(header_second, sizeof(char), 4, conv_file);
@@ -196,7 +195,8 @@ void *write_method(void *args)
 
         if (item_done_loc[ix] == 0)
         {
-            //TODO why is this sleep here needed? to avoid deadlock ?
+            //TODO try to find "good" value for sleep time - this just prevents us
+            //from aquiring the lock over and over again if there is no work
             nanosleep(&sleep2ms, NULL);
             continue;
         }
@@ -206,17 +206,13 @@ void *write_method(void *args)
 //Prior to iterating through the items, prepare strings for each triple of
 //color and gray values that you will need. You can either hardcode them or employ sprintf.
 //When writing an item (i.e. a row) write the prepared strings directly to file via fwrite.
-            //int result = results[ix];
-            //printf("%d ", result);
-            //not needed for result in this case
-            //free(result);
             res_attr = attractors[ix];
             res_conv = convergences[ix];
             //write line
             for (size_t j = 0; j < nmb_lines; j++)
             {
                 //TODO this is just for testing output
-                char temp[6];
+                char temp[7];
                 sprintf(temp, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
                 fwrite(temp, sizeof(char), 6, attr_file);
                 sprintf(temp, "%d %d %d ", res_conv[j], res_conv[j], res_conv[j]);
@@ -247,29 +243,30 @@ long convertToInt(char *arg)
 
     if ((errno == ERANGE && (number == LONG_MAX || number == LONG_MIN)) || (errno != 0 && number == 0))
     {
-        printf("Failed to convert input to number!\n");
+        fprintf(stderr, "Failed to convert input to number!\n");
         exit(EXIT_FAILURE);
     }
     if (endptr == arg)
     {
-        printf("No digits where found!\n");
+        fprintf(stderr, "No digits where found!\n");
         exit(EXIT_FAILURE);
     }
 
     /* If we got here, strtol() successfully parsed a number */
     if (*endptr != '\0')
     { /* In principle not necessarily an error... */
-        printf("Attention: further characters after number: %s\n", endptr);
+        fprintf(stderr, "Attention: further characters after number: %s\n", endptr);
         exit(EXIT_FAILURE);
     }
     return number;
 }
 
-void parseArguments(int argc, char *argv[], char *progname, short int *nmb_threads, int *nmb_lines, short int *poly)
+void parseArguments(int argc, char *argv[], char *progname, 
+    short unsigned int *nmb_threads, unsigned int *nmb_lines, short unsigned int *poly)
 {
     if (argc != 4)
     {
-        printf("Usage: %s -t<threads> -l<rows/columns> <polynomial>\n", progname);
+        fprintf(stderr, "Usage: %s -t<threads> -l<rows/columns> <polynomial>\n", progname);
         exit(EXIT_FAILURE);
     }
 
@@ -285,30 +282,30 @@ void parseArguments(int argc, char *argv[], char *progname, short int *nmb_threa
             *nmb_lines = convertToInt(optarg);
             break;
         default:
-            printf("Error: wrong arguments!\n");
+            fprintf(stderr, "Usage: %s -t<threads> -l<rows/columns> <polynomial>\n", progname);
             exit(EXIT_FAILURE);
         }
     }
     if (optind == 4)
     {
-        printf("Error: no argument for poly was given!\n");
+        fprintf(stderr, "Error: no argument for poly was given!\n");
         exit(EXIT_FAILURE);
     }
     *poly = convertToInt(argv[optind]);
     //check for validity of arguments:
     if (*nmb_threads <= 0)
     {
-        printf("Error: Given number of threads is invalid/missing!\n");
+        fprintf(stderr, "Error: Given number of threads is invalid/missing!\n");
         exit(EXIT_FAILURE);
     }
     if (*nmb_lines <= 0 || *nmb_lines > 100000) //100000 is given in the assignment description as upper bound
     {
-        printf("Error: Given number of rows/columns either missing or too low/high!\n");
+        fprintf(stderr, "Error: Given number of rows/columns either missing or too low/high!\n");
         exit(EXIT_FAILURE);
     }
     if (*poly >= 10)
     {
-        printf("Error: Poly (%hu) is too high, has to be < 10!\n", *poly);
+        fprintf(stderr, "Error: Poly (%hu) is too high, has to be < 10!\n", *poly);
         exit(EXIT_FAILURE);
     }
 }
