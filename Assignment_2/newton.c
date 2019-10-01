@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     else
     {
         fprintf(stderr, "Error: no program name can be found\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     parseArguments(argc, argv, progname, &nmb_threads, &nmb_lines, &poly);
     printf("T is %d, L is %d and poly is %d\n", nmb_threads, nmb_lines, poly);
@@ -82,13 +82,13 @@ int main(int argc, char *argv[])
         if ((ret = pthread_join(compute_threads[tx], NULL)))
         {
             printf("Error joining one of the compute threads: %d\n", ret);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
     if ((ret = pthread_join(write_thread, NULL)))
     {
         printf("Error joining write thread: %d\n", ret);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     pthread_mutex_destroy(&item_done_mutex);
 
@@ -97,6 +97,8 @@ int main(int argc, char *argv[])
     free(convergences);
     free(item_done);
     free(compute_threads);
+
+    return(EXIT_SUCCESS);
 }
 
 //--    Methods              //////////////////////////////////////////////////
@@ -156,15 +158,18 @@ void *write_method(void *args)
     char conv_file_name[25];
     sprintf(conv_file_name, "newton_convergence_x%hu.ppm", poly);
 
+    short int *res_attr; //used to point to current row to handle
+    short int *res_conv; //used to point to current row to handle
+
     if ((attr_file = fopen(attr_file_name, "w")) == NULL)
     {
         fprintf(stderr, "Cannot open attractor file to write! Exiting.\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if ((conv_file = fopen(conv_file_name, "w")) == NULL)
     {
         fprintf(stderr, "Cannot open convergence file to write! Exiting.\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     //write headers
     //TODO maximal color value has to be in line 3 - & check for return value ?!
@@ -184,8 +189,6 @@ void *write_method(void *args)
     char *item_done_loc = (char *)calloc(nmb_lines, sizeof(char));
     for (size_t ix = 0; ix < nmb_lines;)
     {
-        short int *res_attr = (short int *)malloc(sizeof(short int) * nmb_lines);
-        short int *res_conv = (short int *)malloc(sizeof(short int) * nmb_lines);
         pthread_mutex_lock(&item_done_mutex);
         if (item_done[ix] != 0)
             memcpy(item_done_loc, item_done, nmb_lines * sizeof(char));
@@ -245,19 +248,19 @@ long convertToInt(char *arg)
     if ((errno == ERANGE && (number == LONG_MAX || number == LONG_MIN)) || (errno != 0 && number == 0))
     {
         printf("Failed to convert input to number!\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if (endptr == arg)
     {
         printf("No digits where found!\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     /* If we got here, strtol() successfully parsed a number */
     if (*endptr != '\0')
     { /* In principle not necessarily an error... */
         printf("Attention: further characters after number: %s\n", endptr);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     return number;
 }
@@ -266,8 +269,8 @@ void parseArguments(int argc, char *argv[], char *progname, short int *nmb_threa
 {
     if (argc != 4)
     {
-        printf("Usage: %s -nmb_threads<threads> -nmb_lines<rows/columns> <polynomial>\n", progname);
-        exit(1);
+        printf("Usage: %s -t<threads> -l<rows/columns> <polynomial>\n", progname);
+        exit(EXIT_FAILURE);
     }
 
     int opt;
@@ -281,28 +284,31 @@ void parseArguments(int argc, char *argv[], char *progname, short int *nmb_threa
         case 'l':
             *nmb_lines = convertToInt(optarg);
             break;
+        default:
+            printf("Error: wrong arguments!\n");
+            exit(EXIT_FAILURE);
         }
     }
     if (optind == 4)
     {
         printf("Error: no argument for poly was given!\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     *poly = convertToInt(argv[optind]);
     //check for validity of arguments:
     if (*nmb_threads <= 0)
     {
         printf("Error: Given number of threads is invalid/missing!\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if (*nmb_lines <= 0 || *nmb_lines > 100000) //100000 is given in the assignment description as upper bound
     {
         printf("Error: Given number of rows/columns either missing or too low/high!\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if (*poly >= 10)
     {
         printf("Error: Poly (%hu) is too high, has to be < 10!\n", *poly);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
