@@ -208,7 +208,8 @@ void *compute_main(void *args)
                 }
                 x0 = x1;
             }
-            convergence[col] = iterations;
+            //write maximal 99 otherwise ppm file would be wrong with max value 100
+            convergence[col] = iterations > 99 ? iterations : 99;
         }
 
         attractors[row] = attractor;
@@ -251,6 +252,23 @@ void *write_method(void *args)
     
     int attractor_chars, convergence_chars;
 
+    // ---- ---- ---- color values for attractors ---- ---- ----
+    char *colors[11] = {
+        "0 0 0 ",
+        "5 0 0 ",
+        "0 5 0 ",
+        "0 0 5 ",
+        "5 5 0 ",
+        "5 0 5 ",
+        "0 5 5 ",
+        "5 5 5 ",
+        "2 3 0 ",
+        "0 3 2 ",
+        "4 1 4 "
+    };
+
+    // ---- ---- ---- create / open both files ---- ---- ----
+
     char buffer[128]; //we need 25 chars since sprintf automatically null terminates!!
     sprintf(buffer, "newton_attractors_x%hu.ppm", poly);
     if ((attr_file = fopen(buffer, "w")) == NULL)
@@ -266,7 +284,7 @@ void *write_method(void *args)
     }
 
     // ---- ---- ---- write headers of ppm files ---- ---- ----
-    attractor_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, poly+2); //color image, poly+2 since we can only have so many roots
+    attractor_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 5); //color image
     fwrite(buffer, sizeof(char), attractor_chars, attr_file);
     convergence_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 100); //grayscale TODO: in example ppm file the max color is 100 ?!
     fwrite(buffer, sizeof(char), convergence_chars, conv_file);
@@ -302,8 +320,8 @@ void *write_method(void *args)
             for (size_t j = 0; j < nmb_lines; j++)
             {
                 //TODO this is just for testing output
-                attractor_chars = sprintf(buffer, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
-                fwrite(buffer, sizeof(char), attractor_chars, attr_file);
+                //attractor_chars = sprintf(buffer, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
+                fwrite(colors[res_attr[j]], sizeof(char), 6, attr_file);
                 //this results in exactly the same output as the example code generates !!!!! that's good
                 convergence_chars = sprintf(buffer, "%03d %03d %03d ", res_conv[j], res_conv[j], res_conv[j]);
                 fwrite(buffer, sizeof(char), convergence_chars, conv_file);
