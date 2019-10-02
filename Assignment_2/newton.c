@@ -6,6 +6,12 @@
 #include <limits.h>
 #include <time.h> // for nanosleep
 #include <pthread.h>
+#include <math.h>
+#include <complex.h>
+
+#define M_PI 3.14159265358979323846
+#define EPSILON 0.000001    // already squared to milk the miliseconds
+#define N_ROOT 100000000000
 
 //--    prototypes              //////////////////////////////////////////////////
 
@@ -14,8 +20,8 @@
 long convertToInt(char *arg);
 /*
  */
-void parseArguments(int argc, char *argv[], char *progname, 
-    short unsigned int *nmb_threads, unsigned int *nmb_lines, short unsigned int *poly);
+void parseArguments(int argc, char *argv[], char *progname,
+                    short unsigned int *nmb_threads, unsigned int *nmb_lines, short unsigned int *poly);
 
 /*
  */
@@ -25,18 +31,36 @@ void *compute_main(void *args);
  */
 void *write_method(void *args);
 
+/*
+ */
+static inline double complex compute_next_x(double complex previous_x, double d);
+
+//--    variables              //////////////////////////////////////////////////
+
 short unsigned int nmb_threads = 0; //number of threads
 unsigned int nmb_lines = 0;         //nmb_lines can be 100.000 -> short int would be too small
 short unsigned int poly = 0;
+double stepping;
+
+// hardcoded roots
+static double complex root[9][9] = {
+    {1, 0, 0, 0, 0, 0, 0, 0, 0},                                                                                                                                                                                                                                    // roots for x - 1, d = 1
+    {1, -1, 0, 0, 0, 0, 0, 0, 0},                                                                                                                                                                                                                                   // roots for x^2 - 1, d = 2
+    {1, -0.5 - (0.8660254037) * I, -0.5 + 0.8660254037 * I, 0, 0, 0, 0, 0, 0},                                                                                                                                                                                      // roots for x^3 - 1, d = 3
+    {1, -1, I, -I, 0, 0, 0, 0, 0},                                                                                                                                                                                                                                  // roots for x^4 - 1, d = 4
+    {1, -0.8090169943 - 0.5877852522 * I, -0.8090169943 + 0.5877852522 * I, 0.3090169943 - 0.9510565162 * I, 0.3090169943 + 0.9510565162 * I, 0, 0, 0, 0},                                                                                                          // roots for x^5 - 1, d = 5
+    {1, -1, -0.5 + 0.8660254037 * I, 0.5 - 0.8660254037 * I, -0.5 - 0.8660254037 * I, 0.5 + 0.8660254037 * I, 0, 0, 0},                                                                                                                                             // roots for x^6 - 1, d = 6
+    {1, -0.9009688679 - 0.4338837391 * I, 0.6234898018 + 0.7818314824 * I, -0.2225209339 - 0.9749279121 * I, -0.2225209339 + 0.9749279121 * I, 0.6234898018 - 0.7818314824 * I, -0.9009688679 + 0.4338837391 * I, 0, 0},                                            // roots for x^7 - 1, d = 7
+    {1, -1, I, -I, 0.7071067811 + 0.7071067811 * I, -0.7071067811 - 0.7071067811 * I, 0.7071067811 - 0.7071067811 * I, -0.7071067811 + 0.7071067811 * I, 0},                                                                                                        // roots for x^8 - 1, d = 8
+    {1, -0.9396926207 - 0.3420201433 * I, 0.7660444431 + 0.6427876096 * I, -0.5 - 0.8660254037 * I, 0.1736481776 + 0.9848077530 * I, 0.1736481776 - 0.9848077530 * I, -0.5 + 0.8660254037 * I, 0.7660444431 - 0.6427876096 * I, -0.9396926207 + 0.3420201433 * I}}; // roots for x^9 - 1, d = 9
 
 //TODO check if these data types are correct / perfect for us
 // [Martin:] since we have not so many roots char should be enough ?!
-short int **attractors;// roots
-short int **convergences;// number iterations
+short int **attractors;   // roots
+short int **convergences; // number iterations
 
 char *item_done;
 
-struct timespec sleep100ms = {0, 100000000L}; // 100 ms
 pthread_mutex_t item_done_mutex;
 
 //--    main()              //////////////////////////////////////////////////
@@ -60,6 +84,9 @@ int main(int argc, char *argv[])
     }
     parseArguments(argc, argv, progname, &nmb_threads, &nmb_lines, &poly);
     printf("T is %d, L is %d and poly is %d\n", nmb_threads, nmb_lines, poly);
+
+    //set divisor:
+    stepping = 4 / ((double)nmb_lines - 1);
 
     //malloc memory for writing
     attractors = malloc(sizeof(short int *) * nmb_lines);
@@ -99,7 +126,7 @@ int main(int argc, char *argv[])
     free(item_done);
     free(compute_threads);
 
-    return(EXIT_SUCCESS);
+    return (EXIT_SUCCESS);
 }
 
 //--    Methods              //////////////////////////////////////////////////
@@ -110,12 +137,22 @@ void *compute_main(void *args)
     size_t offset = *((size_t *)args);
     free(args);
 
-    for (size_t ix = offset; ix < nmb_lines; ix += nmb_threads)
+    double row_imag;
+
+    double complex x0;
+    double complex x1;
+    double complex difference;
+
+    short int conv;
+    short int iterations;
+
+
+    for (size_t row = offset; row < nmb_lines; row += nmb_threads)
     {
         //printf("\tThread %ld calculates number for row %ld\n", offset, ix);
 
-        short int * attractor = (short int*)malloc(sizeof(short int) * nmb_lines);   //nmb_lines = nmb_rows
-        short int * convergence = (short int*)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int *attractor = (short int *)malloc(sizeof(short int) * nmb_lines);   //nmb_lines = nmb_rows
+        short int *convergence = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
 
         //function to compute roots
         //arguments: hardcoded value of roots for the given poly
@@ -125,25 +162,82 @@ void *compute_main(void *args)
         //store the number of iterations --> convergences
         //store or point to the value of the closest root when convergences
         //criteria is reached, or to the value for the exceptions
-        //just for now to be able to write
-        for (size_t cx = 0; cx < nmb_lines; ++cx)
+        row_imag = 2 - row * stepping;
+        for (size_t col = 0; col < nmb_lines; ++col)
         {
-            attractor[cx] = 0;
-            //convergence[cx] = 0;
-            convergence[cx] = offset;
-        }
-        //TODO remove it later on - just for now sleep a little bit
-        nanosleep(&sleep100ms, NULL);
-        // compute work item
+            //x0 = -2 + 2 * I + (double complex)col * 4 / divisor - (double complex)row * 4 * I / divisor;
+            x0 = (-2 + col * stepping) + row_imag * I;
+            conv = -1;
+            iterations = 0;
+			//printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x0), cimag(x0));
+            //(stdout);
 
-        attractors[ix] = attractor;
-        convergences[ix] = convergence;
+            while (conv == -1)
+            {
+                iterations++;
+                //x1 = x0 - (cpow(x0, d) - 1) / (d * cpow(x0, d - 1));
+                //x1 = compute_next_x(x0, poly);
+		        x1 = x0 - (cpow(x0, poly) - 1) / (poly * cpow(x0, poly - 1));
+                //printf("x1: %.15f, %.15f\n", creal(x1),cimag(x1));
+                //fflush(stdout);
+
+                for (size_t ix = 0; ix < poly; ix++)
+                {
+                    difference = x1 - root[poly-1][ix];
+                    if (creal(difference) * creal(difference) + cimag(difference) * cimag(difference) <= EPSILON)
+                    { // trying not to use cabs()
+                        //printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[poly-1][ix]),cimag(root[poly-1][ix]));
+                        attractor[col] = ix;
+                        conv = 1;
+                        break;
+                    }
+                    else if (creal(x1) >= N_ROOT || creal(x1) <= -N_ROOT || cimag(x1) >= N_ROOT || cimag(x1) <= -N_ROOT)
+                    { //trying not to use cabs()
+                        //printf("special case x1 >= 10000000000\n");
+                        attractor[col] = 10; // 10 value for when newtons method tends to infinity
+                        conv = 1;
+                        break;
+                    }
+                    else if ((creal(x1) * creal(x1) + cimag(x1) * cimag(x1)) <= EPSILON)
+                    { //trying not to use cabs()
+                        //printf("special case x1 tends to 0\n");
+                        attractor[col] = 9; // 9 value for when newtons method tends to 0
+                        conv = 1;
+                        break;
+                    }
+                }
+                x0 = x1;
+            }
+            convergence[col] = iterations;
+        }
+
+        attractors[row] = attractor;
+        convergences[row] = convergence;
 
         pthread_mutex_lock(&item_done_mutex);
-        item_done[ix] = 1;
+        item_done[row] = 1;
         pthread_mutex_unlock(&item_done_mutex);
     }
     return NULL;
+}
+
+static inline double complex compute_next_x(double complex previous_x, double d)
+{
+    double real, imag, add_for_correction, r, theta;
+
+    real = creal(previous_x);
+    imag = cimag(previous_x);
+    add_for_correction = 0;
+
+    if (real < 0)
+        add_for_correction = M_PI;
+    else if (imag < 0)
+        add_for_correction = 2 * M_PI;
+
+    r = sqrt(real * real + imag * imag);
+    theta = atan(imag / real) + add_for_correction;
+
+    return previous_x - (((pow(r, d) * (cos(d * theta) + I * sin(d * theta))) - 1) / (d * (pow(r, (d - 1)) * (cos((d - 1) * theta) + I * sin((d - 1) * theta)))));
 }
 
 void *write_method(void *args)
@@ -181,9 +275,9 @@ void *write_method(void *args)
     fwrite(header_second, sizeof(char), 4, attr_file);
     fwrite(header_second, sizeof(char), 4, conv_file);
 
-    //Attention: 10\n counts as 3 characters - so we have to later on set this value correct
-    fwrite("10\n", sizeof(char), 3, attr_file);
-    fwrite("3\n", sizeof(char), 2, conv_file);
+    //Attention: 255\n counts as 4 characters - so we have to later on set this value correct
+    fwrite("255\n", sizeof(char), 4, attr_file);
+    fwrite("10\n", sizeof(char), 2, conv_file);
 
     char *item_done_loc = (char *)calloc(nmb_lines, sizeof(char));
     for (size_t ix = 0; ix < nmb_lines;)
@@ -203,20 +297,23 @@ void *write_method(void *args)
 
         for (; ix < nmb_lines && item_done_loc[ix] != 0; ++ix)
         {
-//Prior to iterating through the items, prepare strings for each triple of
-//color and gray values that you will need. You can either hardcode them or employ sprintf.
-//When writing an item (i.e. a row) write the prepared strings directly to file via fwrite.
+            //Prior to iterating through the items, prepare strings for each triple of
+            //color and gray values that you will need. You can either hardcode them or employ sprintf.
+            //When writing an item (i.e. a row) write the prepared strings directly to file via fwrite.
             res_attr = attractors[ix];
             res_conv = convergences[ix];
+            printf("\t Writing line %lu\n", ix);
+
             //write line
+            int attractor_chars, convergence_chars;
             for (size_t j = 0; j < nmb_lines; j++)
             {
                 //TODO this is just for testing output
-                char temp[7];
-                sprintf(temp, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
-                fwrite(temp, sizeof(char), 6, attr_file);
-                sprintf(temp, "%d %d %d ", res_conv[j], res_conv[j], res_conv[j]);
-                fwrite(temp, sizeof(char), 6, conv_file);
+                char temp[14]; //14 since: "255 " = 4 * 3 + 1 (space) + 1 (termination)
+                attractor_chars = sprintf(temp, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
+                fwrite(temp, sizeof(char), attractor_chars, attr_file);
+                convergence_chars = sprintf(temp, "%d %d %d ", res_conv[j], res_conv[j], res_conv[j]);
+                fwrite(temp, sizeof(char), convergence_chars, conv_file);
             }
             fwrite("\n", sizeof(char), 1, attr_file);
             fwrite("\n", sizeof(char), 1, conv_file);
@@ -261,8 +358,8 @@ long convertToInt(char *arg)
     return number;
 }
 
-void parseArguments(int argc, char *argv[], char *progname, 
-    short unsigned int *nmb_threads, unsigned int *nmb_lines, short unsigned int *poly)
+void parseArguments(int argc, char *argv[], char *progname,
+                    short unsigned int *nmb_threads, unsigned int *nmb_lines, short unsigned int *poly)
 {
     if (argc != 4)
     {

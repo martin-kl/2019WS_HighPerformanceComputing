@@ -1,7 +1,7 @@
 Cnewton	= newton.c
 
 CC		= gcc
-CFLAGS	= -O0
+CFLAGS	= -O2
 
 .PHONY : clean clear
 
@@ -10,7 +10,7 @@ all : newton
 # $@ = target
 # $< = source
 newton :
-	$(CC) -Wall $(CFLAGS) $(Cnewton) -o $@ -lpthread
+	$(CC) -Wall $(CFLAGS) $(Cnewton) -o $@ -lpthread -lm
 
 # also removes all *.o files
 clean:
