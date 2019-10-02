@@ -266,10 +266,9 @@ void *write_method(void *args)
     }
 
     // ---- ---- ---- write headers of ppm files ---- ---- ----
-        //TODO maximal color value has to be in line 3, check if 10 is a "good" value for us
-    attractor_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 10); //color image
+    attractor_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, poly+2); //color image, poly+2 since we can only have so many roots
     fwrite(buffer, sizeof(char), attractor_chars, attr_file);
-    convergence_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 10); //grayscale
+    convergence_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 100); //grayscale TODO: in example ppm file the max color is 100 ?!
     fwrite(buffer, sizeof(char), convergence_chars, conv_file);
 
     // ---- ---- ---- write rows ---- ---- ----
@@ -305,7 +304,8 @@ void *write_method(void *args)
                 //TODO this is just for testing output
                 attractor_chars = sprintf(buffer, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
                 fwrite(buffer, sizeof(char), attractor_chars, attr_file);
-                convergence_chars = sprintf(buffer, "%d %d %d ", res_conv[j], res_conv[j], res_conv[j]);
+                //this results in exactly the same output as the example code generates !!!!! that's good
+                convergence_chars = sprintf(buffer, "%03d %03d %03d ", res_conv[j], res_conv[j], res_conv[j]);
                 fwrite(buffer, sizeof(char), convergence_chars, conv_file);
             }
             fwrite("\n", sizeof(char), 1, attr_file);
