@@ -8,8 +8,8 @@
 
 
 //Global variables
-size_t d = 5; // the parsed argument for the power of the polynomial
-int l = 1; // the parsed argument for the lines
+size_t d = 2; // the parsed argument for the power of the polynomial
+int l = 3; // the parsed argument for the lines
 
 //function declaration
 
@@ -55,11 +55,11 @@ int main() {
 	for (size_t kx = 0; kx < l; kx++) {
 		root_id[kx]=0;
 		num_iter[kx]=0;
-		double complex initial_value = x_0[0][kx];
+		double complex initial_value = x_0[2][kx];
 		compute(initial_value,root[d-1] + 0, root_id + kx, num_iter + kx);
 	}
 	for (size_t i = 0; i < l; i++) {
-		printf("initial value %f + %fi root %d iterations %d\n",creal(x_0[0][i]),cimag(x_0[0][i]),root_id[i], num_iter[i]);
+		printf("initial value %f + %fi root %d iterations %d\n",creal(x_0[2][i]),cimag(x_0[2][i]),root_id[i], num_iter[i]);
 			}
 
 
@@ -71,7 +71,7 @@ int main() {
 void compute(double complex x0,double complex *root, short int *id, int *iter){
 
 	double complex x1;
-	double complex difference;
+	double complex difference = 0;
 	double epsilon = 0.000001; // already squared to milk the miliseconds
 	long int n_root = 100000000000;
 
@@ -85,9 +85,9 @@ void compute(double complex x0,double complex *root, short int *id, int *iter){
 		for (size_t ix = 0; ix < d; ix++) {
 
 			difference = x1 - root[ix];
-			if (creal(difference)*creal(difference) + cimag(difference)*cimag(difference) <= epsilon) {// trying not to use cabs()
-				//printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[d-1][ix]),cimag(root[d-1][ix]));
-				*id = ix;
+			if((creal(x1) <= epsilon && creal(x1) >= -epsilon) || (cimag(x1) <= epsilon && cimag(x1) >= -epsilon)){ //trying not to use cabs()
+				//printf("special case x1 tends to 0\n");
+				*id = 9; // 9 would be the value for when newtons method tends to 0
 				conv = 1;
 				break;
 			}
@@ -97,12 +97,15 @@ void compute(double complex x0,double complex *root, short int *id, int *iter){
 				conv = 1;
 				break;
 			}
-			else if((creal(x1)*creal(x1) + cimag(x1)*cimag(x1)) <= epsilon){ //trying not to use cabs()
-				//printf("special case x1 tends to 0\n");
-				*id = 9; // 9 would be the value for when newtons method tends to 0
+			else if (creal(difference)*creal(difference) + cimag(difference)*cimag(difference) <= epsilon) {// trying not to use cabs()
+				//printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[d-1][ix]),cimag(root[d-1][ix]));
+				*id = ix;
 				conv = 1;
+				difference = 0;
 				break;
 			}
+
+
 		}
 
 		x0 = x1;
