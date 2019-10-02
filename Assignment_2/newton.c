@@ -83,7 +83,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     parseArguments(argc, argv, progname, &nmb_threads, &nmb_lines, &poly);
-    printf("T is %d, L is %d and poly is %d\n", nmb_threads, nmb_lines, poly);
 
     //set divisor:
     stepping = 4 / ((double)nmb_lines - 1);
@@ -209,7 +208,7 @@ void *compute_main(void *args)
                 x0 = x1;
             }
             //write maximal 99 otherwise ppm file would be wrong with max value 100
-            convergence[col] = iterations > 99 ? iterations : 99;
+            convergence[col] = iterations < 100 ? iterations : 99;
         }
 
         attractors[row] = attractor;
@@ -254,17 +253,17 @@ void *write_method(void *args)
 
     // ---- ---- ---- color values for attractors ---- ---- ----
     char *colors[11] = {
-        "0 0 0 ",
         "5 0 0 ",
         "0 5 0 ",
         "0 0 5 ",
         "5 5 0 ",
         "5 0 5 ",
         "0 5 5 ",
-        "5 5 5 ",
         "2 3 0 ",
         "0 3 2 ",
-        "4 1 4 "
+        "2 3 3 ",
+        "0 0 0 ",   //black, converging to 0
+        "5 5 5 "    //white, converging to inf
     };
 
     // ---- ---- ---- create / open both files ---- ---- ----
