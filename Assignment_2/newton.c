@@ -242,42 +242,37 @@ static inline double complex compute_next_x(double complex previous_x, double d)
 
 void *write_method(void *args)
 {
-    struct timespec sleep2ms = {0, 2000000L}; // 2 ms
-
     FILE *attr_file;
     FILE *conv_file;
-    char attr_file_name[25]; //we need 25 chars since sprintf automatically null terminates!!
-    sprintf(attr_file_name, "newton_attractors_x%hu.ppm", poly);
-    char conv_file_name[26];
-    sprintf(conv_file_name, "newton_convergence_x%hu.ppm", poly);
+    struct timespec sleep2ms = {0, 2000000L}; // 2 ms
 
     short int *res_attr; //used to point to current row to handle
     short int *res_conv; //used to point to current row to handle
+    
+    int attractor_chars, convergence_chars;
 
-    if ((attr_file = fopen(attr_file_name, "w")) == NULL)
+    char buffer[128]; //we need 25 chars since sprintf automatically null terminates!!
+    sprintf(buffer, "newton_attractors_x%hu.ppm", poly);
+    if ((attr_file = fopen(buffer, "w")) == NULL)
     {
         fprintf(stderr, "Cannot open attractor file to write! Exiting.\n");
         exit(EXIT_FAILURE);
     }
-    if ((conv_file = fopen(conv_file_name, "w")) == NULL)
+    sprintf(buffer, "newton_convergence_x%hu.ppm", poly);
+    if ((conv_file = fopen(buffer, "w")) == NULL)
     {
         fprintf(stderr, "Cannot open convergence file to write! Exiting.\n");
         exit(EXIT_FAILURE);
     }
-    //write headers
-    //TODO maximal color value has to be in line 3 - & check for return value ?!
-    char header_first[3] = "P3\n";
-    fwrite(header_first, sizeof(char), 3, attr_file);
-    fwrite(header_first, sizeof(char), 3, conv_file);
 
-    char header_second[5];
-    sprintf(header_second, "%d %d\n", nmb_lines, nmb_lines);
-    fwrite(header_second, sizeof(char), 4, attr_file);
-    fwrite(header_second, sizeof(char), 4, conv_file);
+    // ---- ---- ---- write headers of ppm files ---- ---- ----
+        //TODO maximal color value has to be in line 3, check if 10 is a "good" value for us
+    attractor_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 10); //color image
+    fwrite(buffer, sizeof(char), attractor_chars, attr_file);
+    convergence_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 10); //grayscale
+    fwrite(buffer, sizeof(char), convergence_chars, conv_file);
 
-    //Attention: 255\n counts as 4 characters - so we have to later on set this value correct
-    fwrite("255\n", sizeof(char), 4, attr_file);
-    fwrite("10\n", sizeof(char), 2, conv_file);
+    // ---- ---- ---- write rows ---- ---- ----
 
     char *item_done_loc = (char *)calloc(nmb_lines, sizeof(char));
     for (size_t ix = 0; ix < nmb_lines;)
@@ -302,18 +297,16 @@ void *write_method(void *args)
             //When writing an item (i.e. a row) write the prepared strings directly to file via fwrite.
             res_attr = attractors[ix];
             res_conv = convergences[ix];
-            printf("\t Writing line %lu\n", ix);
+            //printf("\t Writing line %lu\n", ix);
 
             //write line
-            int attractor_chars, convergence_chars;
             for (size_t j = 0; j < nmb_lines; j++)
             {
                 //TODO this is just for testing output
-                char temp[14]; //14 since: "255 " = 4 * 3 + 1 (space) + 1 (termination)
-                attractor_chars = sprintf(temp, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
-                fwrite(temp, sizeof(char), attractor_chars, attr_file);
-                convergence_chars = sprintf(temp, "%d %d %d ", res_conv[j], res_conv[j], res_conv[j]);
-                fwrite(temp, sizeof(char), convergence_chars, conv_file);
+                attractor_chars = sprintf(buffer, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
+                fwrite(buffer, sizeof(char), attractor_chars, attr_file);
+                convergence_chars = sprintf(buffer, "%d %d %d ", res_conv[j], res_conv[j], res_conv[j]);
+                fwrite(buffer, sizeof(char), convergence_chars, conv_file);
             }
             fwrite("\n", sizeof(char), 1, attr_file);
             fwrite("\n", sizeof(char), 1, conv_file);
