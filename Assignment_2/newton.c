@@ -47,11 +47,11 @@ static double complex root[9][9] = {
     {1, 0, 0, 0, 0, 0, 0, 0, 0},                                                                                                                                                                                                                                    // roots for x - 1, d = 1
     {1, -1, 0, 0, 0, 0, 0, 0, 0},                                                                                                                                                                                                                                   // roots for x^2 - 1, d = 2
     {1, -0.5 - (0.8660254037) * I, -0.5 + 0.8660254037 * I, 0, 0, 0, 0, 0, 0},                                                                                                                                                                                      // roots for x^3 - 1, d = 3
-    {1, -1, I, -I, 0, 0, 0, 0, 0},                                                                                                                                                                                                                                  // roots for x^4 - 1, d = 4
+    {1, -1, 1*I, -1*I, 0, 0, 0, 0, 0},                                                                                                                                                                                                                                  // roots for x^4 - 1, d = 4
     {1, -0.8090169943 - 0.5877852522 * I, -0.8090169943 + 0.5877852522 * I, 0.3090169943 - 0.9510565162 * I, 0.3090169943 + 0.9510565162 * I, 0, 0, 0, 0},                                                                                                          // roots for x^5 - 1, d = 5
     {1, -1, -0.5 + 0.8660254037 * I, 0.5 - 0.8660254037 * I, -0.5 - 0.8660254037 * I, 0.5 + 0.8660254037 * I, 0, 0, 0},                                                                                                                                             // roots for x^6 - 1, d = 6
     {1, -0.9009688679 - 0.4338837391 * I, 0.6234898018 + 0.7818314824 * I, -0.2225209339 - 0.9749279121 * I, -0.2225209339 + 0.9749279121 * I, 0.6234898018 - 0.7818314824 * I, -0.9009688679 + 0.4338837391 * I, 0, 0},                                            // roots for x^7 - 1, d = 7
-    {1, -1, I, -I, 0.7071067811 + 0.7071067811 * I, -0.7071067811 - 0.7071067811 * I, 0.7071067811 - 0.7071067811 * I, -0.7071067811 + 0.7071067811 * I, 0},                                                                                                        // roots for x^8 - 1, d = 8
+    {1, -1, 1*I, -1*I, 0.7071067811 + 0.7071067811 * I, -0.7071067811 - 0.7071067811 * I, 0.7071067811 - 0.7071067811 * I, -0.7071067811 + 0.7071067811 * I, 0},                                                                                                        // roots for x^8 - 1, d = 8
     {1, -0.9396926207 - 0.3420201433 * I, 0.7660444431 + 0.6427876096 * I, -0.5 - 0.8660254037 * I, 0.1736481776 + 0.9848077530 * I, 0.1736481776 - 0.9848077530 * I, -0.5 + 0.8660254037 * I, 0.7660444431 - 0.6427876096 * I, -0.9396926207 + 0.3420201433 * I}}; // roots for x^9 - 1, d = 9
 
 //TODO check if these data types are correct / perfect for us
@@ -83,7 +83,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     parseArguments(argc, argv, progname, &nmb_threads, &nmb_lines, &poly);
-    printf("T is %d, L is %d and poly is %d\n", nmb_threads, nmb_lines, poly);
 
     //set divisor:
     stepping = 4 / ((double)nmb_lines - 1);
@@ -209,7 +208,7 @@ void *compute_main(void *args)
                 x0 = x1;
             }
             //write maximal 99 otherwise ppm file would be wrong with max value 100
-            convergence[col] = iterations > 99 ? iterations : 99;
+            convergence[col] = iterations < 100 ? iterations : 99;
         }
 
         attractors[row] = attractor;
@@ -254,17 +253,17 @@ void *write_method(void *args)
 
     // ---- ---- ---- color values for attractors ---- ---- ----
     char *colors[11] = {
-        "0 0 0 ",
         "5 0 0 ",
         "0 5 0 ",
         "0 0 5 ",
         "5 5 0 ",
         "5 0 5 ",
         "0 5 5 ",
-        "5 5 5 ",
         "2 3 0 ",
         "0 3 2 ",
-        "4 1 4 "
+        "2 3 3 ",
+        "0 0 0 ",   //black, converging to 0
+        "5 5 5 "    //white, converging to inf
     };
 
     // ---- ---- ---- create / open both files ---- ---- ----
