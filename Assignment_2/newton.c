@@ -15,6 +15,22 @@
 
 //--    prototypes              //////////////////////////////////////////////////
 
+
+void timespec_diff(struct timespec *start, struct timespec *stop, struct timespec *result)
+{
+    if ((stop->tv_nsec - start->tv_nsec) < 0)
+    {
+        result->tv_sec = stop->tv_sec - start->tv_sec - 1;
+        result->tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000;
+    }
+    else
+    {
+        result->tv_sec = stop->tv_sec - start->tv_sec;
+        result->tv_nsec = stop->tv_nsec - start->tv_nsec;
+    }
+    return;
+}
+
 /*
  */
 long convertToInt(char *arg);
@@ -66,7 +82,13 @@ pthread_mutex_t item_done_mutex;
 //--    main()              //////////////////////////////////////////////////
 
 int main(int argc, char *argv[])
-{
+{	
+    struct timespec start;
+    struct timespec end;
+    struct timespec diff;
+
+    timespec_get(&start, TIME_UTC);
+	
     char *progname;
 
     pthread_t *compute_threads;
@@ -124,6 +146,15 @@ int main(int argc, char *argv[])
     free(convergences);
     free(item_done);
     free(compute_threads);
+	
+    timespec_get(&end, TIME_UTC);
+    timespec_diff(&start, &end, &diff);
+	
+	double t1 = diff.tv_sec;
+	double t2 = (diff.tv_nsec / 1000000.0);
+	double t = t1*1000+t2;
+
+    printf("Time :\t%f\n", t);
 
     return (EXIT_SUCCESS);
 }
