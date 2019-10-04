@@ -11,7 +11,7 @@
 
 #define M_PI 3.14159265358979323846
 #define EPSILON 0.000001    // already squared to milk the miliseconds
-#define N_ROOT 100000000000
+#define N_ROOT 99999999999
 
 //--    prototypes              //////////////////////////////////////////////////
 
@@ -139,17 +139,16 @@ void *compute_main(void *args)
     double row_imag;
 
     double complex x0;
+    double complex prev_x0;
     double complex x1;
     double complex difference;
 
     short int conv;
     short int iterations;
 
-
     for (size_t row = offset; row < nmb_lines; row += nmb_threads)
     {
         //printf("\tThread %ld calculates number for row %ld\n", offset, ix);
-
         short int *attractor = (short int *)malloc(sizeof(short int) * nmb_lines);   //nmb_lines = nmb_rows
         short int *convergence = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
 
@@ -162,16 +161,15 @@ void *compute_main(void *args)
         //store or point to the value of the closest root when convergences
         //criteria is reached, or to the value for the exceptions
         row_imag = 2 - row * stepping;
+        prev_x0 = -2 + row_imag * I;
+        x1 = prev_x0;
         for (size_t col = 0; col < nmb_lines; ++col)
         {
             //x0 = -2 + 2 * I + (double complex)col * 4 / divisor - (double complex)row * 4 * I / divisor;
-            //x0 = 0 + 2*I;
             //x0 = (-2 + col * stepping) + row_imag * I;
 			//printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x0), cimag(x0));
             conv = -1;
             iterations = 0;
-
-            x1 = (-2 + col * stepping) + row_imag * I;
 			//printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x1), cimag(x1));
 
             while (conv == -1)
@@ -179,15 +177,17 @@ void *compute_main(void *args)
                 iterations++;
 		        //x1 = x0 - (cpow(x0, poly) - 1) / (poly * cpow(x0, poly - 1));
                 //printf("#%d - x1: %g, %gi\n", iterations, creal(x1),cimag(x1));
+                double realx1 = creal(x1);
+                double imagx1 = cimag(x1);
 
-                if ((creal(x1) * creal(x1) + cimag(x1) * cimag(x1)) <= EPSILON)
+                if ((realx1 * realx1 + realx1 * imagx1) <= EPSILON)
                 { //trying not to use cabs()
                     //printf("special case x1 tends to 0\n");
                     attractor[col] = 9; // 9 value for when newtons method tends to 0
                     conv = 1;
                     break;
                 }
-                else if (creal(x1) >= N_ROOT || creal(x1) <= -N_ROOT || cimag(x1) >= N_ROOT || cimag(x1) <= -N_ROOT)
+                else if (realx1 > N_ROOT || realx1 < -N_ROOT || imagx1 > N_ROOT || imagx1 < -N_ROOT)
                 { //trying not to use cabs()
                     //printf("special case x1 >= 10000000000\n");
                     attractor[col] = 10; // 10 value for when newtons method tends to infinity
@@ -211,6 +211,8 @@ void *compute_main(void *args)
             }
             //write maximal 99 otherwise ppm file would be wrong with max value 100
             convergence[col] = iterations < 100 ? iterations : 99;
+            //go to next col
+            x1 = prev_x0 + stepping;
         }
 
         attractors[row] = attractor;
