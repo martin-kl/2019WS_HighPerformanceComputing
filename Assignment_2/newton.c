@@ -165,47 +165,49 @@ void *compute_main(void *args)
         for (size_t col = 0; col < nmb_lines; ++col)
         {
             //x0 = -2 + 2 * I + (double complex)col * 4 / divisor - (double complex)row * 4 * I / divisor;
-            x0 = (-2 + col * stepping) + row_imag * I;
+            //x0 = 0 + 2*I;
+            //x0 = (-2 + col * stepping) + row_imag * I;
+			//printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x0), cimag(x0));
             conv = -1;
             iterations = 0;
-			//printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x0), cimag(x0));
-            //(stdout);
+
+            x1 = (-2 + col * stepping) + row_imag * I;
+			//printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x1), cimag(x1));
 
             while (conv == -1)
             {
                 iterations++;
-                //x1 = x0 - (cpow(x0, d) - 1) / (d * cpow(x0, d - 1));
-                //x1 = compute_next_x(x0, poly);
-		        x1 = x0 - (cpow(x0, poly) - 1) / (poly * cpow(x0, poly - 1));
-                //printf("x1: %.15f, %.15f\n", creal(x1),cimag(x1));
-                //fflush(stdout);
+		        //x1 = x0 - (cpow(x0, poly) - 1) / (poly * cpow(x0, poly - 1));
+                //printf("#%d - x1: %g, %gi\n", iterations, creal(x1),cimag(x1));
+
+                if ((creal(x1) * creal(x1) + cimag(x1) * cimag(x1)) <= EPSILON)
+                { //trying not to use cabs()
+                    //printf("special case x1 tends to 0\n");
+                    attractor[col] = 9; // 9 value for when newtons method tends to 0
+                    conv = 1;
+                    break;
+                }
+                else if (creal(x1) >= N_ROOT || creal(x1) <= -N_ROOT || cimag(x1) >= N_ROOT || cimag(x1) <= -N_ROOT)
+                { //trying not to use cabs()
+                    //printf("special case x1 >= 10000000000\n");
+                    attractor[col] = 10; // 10 value for when newtons method tends to infinity
+                    conv = 1;
+                    break;
+                }
 
                 for (size_t ix = 0; ix < poly; ix++)
                 {
                     difference = x1 - root[poly-1][ix];
-                    if (creal(difference) * creal(difference) + cimag(difference) * cimag(difference) <= EPSILON)
+                    if ((creal(difference) * creal(difference) + cimag(difference) * cimag(difference)) <= EPSILON)
                     { // trying not to use cabs()
                         //printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[poly-1][ix]),cimag(root[poly-1][ix]));
                         attractor[col] = ix;
                         conv = 1;
                         break;
                     }
-                    else if (creal(x1) >= N_ROOT || creal(x1) <= -N_ROOT || cimag(x1) >= N_ROOT || cimag(x1) <= -N_ROOT)
-                    { //trying not to use cabs()
-                        //printf("special case x1 >= 10000000000\n");
-                        attractor[col] = 10; // 10 value for when newtons method tends to infinity
-                        conv = 1;
-                        break;
-                    }
-                    else if ((creal(x1) * creal(x1) + cimag(x1) * cimag(x1)) <= EPSILON)
-                    { //trying not to use cabs()
-                        //printf("special case x1 tends to 0\n");
-                        attractor[col] = 9; // 9 value for when newtons method tends to 0
-                        conv = 1;
-                        break;
-                    }
                 }
                 x0 = x1;
+                x1 = compute_next_x(x0, poly);
             }
             //write maximal 99 otherwise ppm file would be wrong with max value 100
             convergence[col] = iterations < 100 ? iterations : 99;
@@ -237,7 +239,7 @@ static inline double complex compute_next_x(double complex previous_x, double d)
     r = sqrt(real * real + imag * imag);
     theta = atan(imag / real) + add_for_correction;
 
-    return previous_x - (((pow(r, d) * (cos(d * theta) + I * sin(d * theta))) - 1) / (d * (pow(r, (d - 1)) * (cos((d - 1) * theta) + I * sin((d - 1) * theta)))));
+    return (previous_x - (((pow(r, d) * (cos(d * theta) + I * sin(d * theta))) - 1) / (d * (pow(r, (d - 1)) * (cos((d - 1) * theta) + I * sin((d - 1) * theta))))));
 }
 
 void *write_method(void *args)
