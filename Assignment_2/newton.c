@@ -50,6 +50,10 @@ void *write_method(void *args);
  */
 static inline double complex compute_next_x(double complex previous_x, double d);
 
+/*
+ */
+static inline short compute_root(double complex x1, short int *conv);
+
 //--    variables              //////////////////////////////////////////////////
 
 short unsigned int nmb_threads = 0; //number of threads
@@ -68,6 +72,7 @@ static double complex root[9][9] = {
     {1, -0.9009688679 + 0.4338837391 * I, -0.9009688679 - 0.4338837391 * I, -0.2225209339 + 0.9749279121 * I, -0.2225209339 - 0.9749279121 * I, 0.6234898018 + 0.7818314824 * I, 0.6234898018 - 0.7818314824 * I, 0, 0},                                            // roots for x^7 - 1, d = 7
     {1, -1, 1 * I, -1 * I, -0.7071067811 + 0.7071067811 * I, -0.7071067811 - 0.7071067811 * I, 0.7071067811 + 0.7071067811 * I, 0.7071067811 - 0.7071067811 * I, 0},                                                                                                // roots for x^8 - 1, d = 8
     {1, -0.9396926207 + 0.3420201433 * I, -0.9396926207 - 0.3420201433 * I, -0.5 + 0.8660254037 * I, -0.5 - 0.8660254037 * I, 0.1736481776 + 0.9848077530 * I, 0.1736481776 - 0.9848077530 * I, 0.7660444431 + 0.6427876096 * I, 0.7660444431 - 0.6427876096 * I}}; // roots for x^9 - 1, d = 9
+short complementary_root[9] = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
 
 //TODO check if these data types are correct / perfect for us
 // [Martin:] since we have not so many roots char should be enough ?!
@@ -76,7 +81,8 @@ short int **convergences; // number iterations
 
 char *item_done;
 
-pthread_mutex_t item_done_mutex;
+pthread_mutex_t item_done_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t compl_root_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //--    main()              //////////////////////////////////////////////////
 
@@ -139,6 +145,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     pthread_mutex_destroy(&item_done_mutex);
+    pthread_mutex_destroy(&compl_root_mutex);
 
     //free variables again
     free(attractors);
@@ -168,92 +175,127 @@ void *compute_main(void *args)
 
     double row_imag;
 
+    //double complex x1;
     double complex x0;
-    double complex prev_x0;
-    double complex x1;
-    double complex difference;
+    short int compl_root;
 
-    short int conv;
-    short int iterations;
+    int compl_row;
 
-    for (size_t row = offset; row < nmb_lines; row += nmb_threads)
+//TODO check if nmb_lines / 2 works
+    for (size_t row = offset; row < nmb_lines / 2; row += nmb_threads)
     {
+        compl_row = nmb_lines - row - 1;
+        //printf("Starting computation for row %d and compl_row %d\n", row, compl_row);
         //printf("\tThread %ld calculates number for row %ld\n", offset, ix);
-        short int *attractor = (short int *)malloc(sizeof(short int) * nmb_lines);   //nmb_lines = nmb_rows
-        short int *convergence = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int *attr = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int *conv = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int *attr_compl = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int *conv_compl = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
 
-        //function to compute roots
-        //arguments: hardcoded value of roots for the given poly
-        //while the difference between the current step of newtons
-        //method and any of the roots is greater than 10^-3
-        //keep computing next iterations
-        //store the number of iterations --> convergences
-        //store or point to the value of the closest root when convergences
-        //criteria is reached, or to the value for the exceptions
         row_imag = 2 - row * stepping;
-        prev_x0 = -2 + row_imag * I;
-        x1 = prev_x0;
+        x0 = -2 + row_imag * I;
         for (size_t col = 0; col < nmb_lines; ++col)
         {
             //x0 = -2 + 2 * I + (double complex)col * 4 / divisor - (double complex)row * 4 * I / divisor;
             //x0 = (-2 + col * stepping) + row_imag * I;
             //printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x0), cimag(x0));
-            conv = -1;
-            iterations = 0;
             //printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x1), cimag(x1));
 
-            while (conv == -1)
-            {
-                //x1 = x0 - (cpow(x0, poly) - 1) / (poly * cpow(x0, poly - 1));
-                //printf("#%d - x1: %g, %gi\n", iterations, creal(x1),cimag(x1));
-                double realx1 = creal(x1);
-                double imagx1 = cimag(x1);
+            short int calculated_root = compute_root(x0, &conv[col]);
+            compl_root = complementary_root[calculated_root];
+            //check for complementary root
+            if(compl_root == -1) {
+                //printf("## ## Currently looking at point (%f, %fi) - compl_root is missing for root %d\n", creal(x0), cimag(x0), calculated_root);
+                //have to compute complementary root
+                double real = creal(x0);
+                double imag = cimag(x0);
+                imag = imag * -1;
+                //build complex number
+                double complex inv_compl = real + imag * I;
+                //TODO build complex number in call
+                compl_root = compute_root(inv_compl, &conv_compl[col]);
 
-                if ((realx1 * realx1 + imagx1 * imagx1) <= EPSILON)
-                { //trying not to use cabs()
-                    //printf("special case x1 tends to 0\n");
-                    attractor[col] = 9; // 9 value for when newtons method tends to 0
-                    conv = 1;
-                    break;
-                }
-                else if (realx1 > N_ROOT || realx1 < -N_ROOT || imagx1 > N_ROOT || imagx1 < -N_ROOT)
-                { //trying not to use cabs()
-                    //printf("special case x1 >= 10000000000\n");
-                    attractor[col] = 10; // 10 value for when newtons method tends to infinity
-                    conv = 1;
-                    break;
-                }
-
-                for (size_t ix = 0; ix < poly; ix++)
-                {
-                    difference = x1 - root[poly - 1][ix];
-                    if ((creal(difference) * creal(difference) + cimag(difference) * cimag(difference)) <= EPSILON)
-                    { // trying not to use cabs()
-                        //printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[poly-1][ix]),cimag(root[poly-1][ix]));
-                        attractor[col] = ix;
-                        conv = 1;
-                        break;
+                //this if is needed 
+                if(fabs(real) != 2.0 || fabs(imag) != 2.0) {
+                    pthread_mutex_lock(&compl_root_mutex);
+                    complementary_root[calculated_root] = compl_root;
+                    //TODO check if this works
+                    complementary_root[compl_root] = calculated_root;
+                    pthread_mutex_unlock(&compl_root_mutex);
+                    /*
+                    printf("\t(%f,%fi)-[%d,%d] converges to root %d\n", creal(inv_compl), cimag(inv_compl), compl_row, col, compl_root);
+                    printf("Curr compl relation: ");
+                    for(int i = 0; i < 9; i++) {
+                        if(complementary_root[i] != -1)
+                            printf(" (%d->%d)", i, complementary_root[i]);
                     }
+                    printf("\n");
+                    */
                 }
-                x0 = x1;
-                x1 = compute_next_x(x0, poly);
-                iterations++;
             }
-            //write maximal 99 otherwise ppm file would be wrong with max value 100
-            convergence[col] = iterations < 100 ? iterations : 99;
+            //printf("(%0.3f,%0.3fi)-[%d,%d] converges to root %d\n", creal(x0), cimag(x0), row, col, calculated_root);
+            //printf("\t[%d,%d] converges to root %d\n\n", compl_row, col, compl_root);
+            attr[col] = calculated_root;
+            attr_compl[col] = compl_root;
+            //TODO conv is same number ?!
+            conv_compl[col] = conv[col];
+
             //go to next col
-            x1 = prev_x0 + stepping;
-            prev_x0 = x1;
+            x0 += stepping;
+            //x0 = x1;
         }
 
-        attractors[row] = attractor;
-        convergences[row] = convergence;
+        attractors[row] = attr;
+        attractors[compl_row] = attr_compl;
+        convergences[row] = conv;
+        convergences[compl_row] = conv_compl;
 
         pthread_mutex_lock(&item_done_mutex);
-        item_done[row] = 1;
+        item_done[row] = item_done[compl_row] = 1;
         pthread_mutex_unlock(&item_done_mutex);
     }
     return NULL;
+}
+
+static inline short compute_root(double complex x1, short int *conv) {
+    short int iterations = 0;
+    double complex difference;
+
+    while (1)
+    {
+        //x1 = x0 - (cpow(x0, poly) - 1) / (poly * cpow(x0, poly - 1));
+        //printf("#%d - x1: %g, %gi\n", iterations, creal(x1),cimag(x1));
+        double realx1 = creal(x1);
+        double imagx1 = cimag(x1);
+
+        if ((realx1 * realx1 + imagx1 * imagx1) <= EPSILON)
+        { //trying not to use cabs()
+            //printf("special case x1 tends to 0\n");
+            //write maximal 99 otherwise ppm file would be wrong with max value 100
+            *conv = iterations < 100 ? iterations : 99;
+            return 9;
+        }
+        else if (realx1 > N_ROOT || realx1 < -N_ROOT || imagx1 > N_ROOT || imagx1 < -N_ROOT)
+        { //trying not to use cabs()
+            //printf("special case x1 >= 10000000000\n");
+            *conv = iterations < 100 ? iterations : 99;
+            return 10;
+        }
+
+        for (size_t ix = 0; ix < poly; ix++)
+        {
+            difference = x1 - root[poly - 1][ix];
+            if ((creal(difference) * creal(difference) + cimag(difference) * cimag(difference)) <= EPSILON)
+            { // trying not to use cabs()
+                //printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[poly-1][ix]),cimag(root[poly-1][ix]));
+                //attr[col] = ix;
+                *conv = iterations < 100 ? iterations : 99;
+                return ix;
+            }
+        }
+        x1 = compute_next_x(x1, poly);
+        iterations++;
+    }
 }
 
 static inline double complex compute_next_x(double complex previous_x, double d)
@@ -348,15 +390,13 @@ void *write_method(void *args)
             //When writing an item (i.e. a row) write the prepared strings directly to file via fwrite.
             res_attr = attractors[ix];
             res_conv = convergences[ix];
-            //printf("\t Writing line %lu\n", ix);
+            //printf("\t ## Writing line %lu\n", ix);
 
             //write line
             for (size_t j = 0; j < nmb_lines; j++)
             {
-                //TODO this is just for testing output
-                //attractor_chars = sprintf(buffer, "%d %d %d ", res_attr[j], res_attr[j], res_attr[j]);
+                //printf("\t # [%d,%d] root %lu\n", ix, j, res_attr[j]);
                 fwrite(colors[res_attr[j]], sizeof(char), 6, attr_file);
-                //this results in exactly the same output as the example code generates !!!!! that's good
                 convergence_chars = sprintf(buffer, "%03d %03d %03d ", res_conv[j], res_conv[j], res_conv[j]);
                 fwrite(buffer, sizeof(char), convergence_chars, conv_file);
             }
