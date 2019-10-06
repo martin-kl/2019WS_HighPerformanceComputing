@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 	double t2 = (diff.tv_nsec / 1000000.0);
 	double t = t1*1000+t2;
 
-    printf("Time :\t%f\n", t);
+    printf("Time :\t%fms\n", t);
 
     return (EXIT_SUCCESS);
 }
@@ -205,13 +205,12 @@ void *compute_main(void *args)
 
             while (conv == -1)
             {
-                iterations++;
 		        //x1 = x0 - (cpow(x0, poly) - 1) / (poly * cpow(x0, poly - 1));
                 //printf("#%d - x1: %g, %gi\n", iterations, creal(x1),cimag(x1));
                 double realx1 = creal(x1);
                 double imagx1 = cimag(x1);
 
-                if ((realx1 * realx1 + realx1 * imagx1) <= EPSILON)
+                if ((realx1 * realx1 + imagx1 * imagx1) <= EPSILON)
                 { //trying not to use cabs()
                     //printf("special case x1 tends to 0\n");
                     attractor[col] = 9; // 9 value for when newtons method tends to 0
@@ -239,11 +238,13 @@ void *compute_main(void *args)
                 }
                 x0 = x1;
                 x1 = compute_next_x(x0, poly);
+                iterations++;
             }
             //write maximal 99 otherwise ppm file would be wrong with max value 100
             convergence[col] = iterations < 100 ? iterations : 99;
             //go to next col
             x1 = prev_x0 + stepping;
+            prev_x0 = x1;
         }
 
         attractors[row] = attractor;
