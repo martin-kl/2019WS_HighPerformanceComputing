@@ -41,6 +41,7 @@ void parseArguments(int argc, char *argv[], char *progname,
 /*
  */
 void *compute_main(void *args);
+void *compute_thread_0(void *args);
 
 /*
  */
@@ -121,7 +122,8 @@ int main(int argc, char *argv[])
 
     //create nmb_threads compute threads and one writing thread
     compute_threads = (pthread_t *)malloc(sizeof(pthread_t) * nmb_threads);
-    for (size_t tx = 0; tx < nmb_threads; ++tx)
+    pthread_create(&compute_threads[0], NULL, compute_thread_0, (void *)NULL);
+    for (size_t tx = 1; tx < nmb_threads; ++tx)
     {
         size_t *args = malloc(sizeof(size_t));
         *args = tx;
@@ -181,12 +183,10 @@ void *compute_main(void *args)
 
     int compl_row;
 
-//TODO check if nmb_lines / 2 works
     for (size_t row = offset; row < nmb_lines / 2; row += nmb_threads)
     {
         compl_row = nmb_lines - row - 1;
         //printf("Starting computation for row %d and compl_row %d\n", row, compl_row);
-        //printf("\tThread %ld calculates number for row %ld\n", offset, ix);
         short int *attr = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
         short int *conv = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
         short int *attr_compl = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
@@ -196,42 +196,26 @@ void *compute_main(void *args)
         x0 = -2 + row_imag * I;
         for (size_t col = 0; col < nmb_lines; ++col)
         {
-            //x0 = -2 + 2 * I + (double complex)col * 4 / divisor - (double complex)row * 4 * I / divisor;
-            //x0 = (-2 + col * stepping) + row_imag * I;
-            //printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x0), cimag(x0));
             //printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x1), cimag(x1));
 
             short int calculated_root = compute_root(x0, &conv[col]);
+
             compl_root = complementary_root[calculated_root];
             //check for complementary root
             if(compl_root == -1) {
-                //printf("## ## Currently looking at point (%f, %fi) - compl_root is missing for root %d\n", creal(x0), cimag(x0), calculated_root);
                 //have to compute complementary root
                 double real = creal(x0);
                 double imag = cimag(x0);
-                imag = imag * -1;
                 //build complex number
-                double complex inv_compl = real + imag * I;
-                //TODO build complex number in call
-                compl_root = compute_root(inv_compl, &conv_compl[col]);
+                compl_root = compute_root((real + (imag * (-1) * I)), &conv_compl[col]);
 
-                //this if is needed 
-                if(fabs(real) != 2.0 || fabs(imag) != 2.0) {
+                // this if is not needed here, only in the thread 0 (outer most row)
+                //if(fabs(real) != 2.0 || fabs(imag) != 2.0) {
                     pthread_mutex_lock(&compl_root_mutex);
                     complementary_root[calculated_root] = compl_root;
-                    //TODO check if this works
                     complementary_root[compl_root] = calculated_root;
                     pthread_mutex_unlock(&compl_root_mutex);
-                    /*
-                    printf("\t(%f,%fi)-[%d,%d] converges to root %d\n", creal(inv_compl), cimag(inv_compl), compl_row, col, compl_root);
-                    printf("Curr compl relation: ");
-                    for(int i = 0; i < 9; i++) {
-                        if(complementary_root[i] != -1)
-                            printf(" (%d->%d)", i, complementary_root[i]);
-                    }
-                    printf("\n");
-                    */
-                }
+                //}
             }
             //printf("(%0.3f,%0.3fi)-[%d,%d] converges to root %d\n", creal(x0), cimag(x0), row, col, calculated_root);
             //printf("\t[%d,%d] converges to root %d\n\n", compl_row, col, compl_root);
@@ -242,16 +226,98 @@ void *compute_main(void *args)
 
             //go to next col
             x0 += stepping;
-            //x0 = x1;
         }
 
         attractors[row] = attr;
-        attractors[compl_row] = attr_compl;
         convergences[row] = conv;
+        attractors[compl_row] = attr_compl;
         convergences[compl_row] = conv_compl;
 
         pthread_mutex_lock(&item_done_mutex);
         item_done[row] = item_done[compl_row] = 1;
+        pthread_mutex_unlock(&item_done_mutex);
+    }
+    return NULL;
+}
+
+void *compute_thread_0(void *args)
+{
+    double row_imag;
+    double complex x0;
+    short int compl_root;
+    int compl_row;
+
+    for (size_t row = 0; row < nmb_lines / 2; row += nmb_threads)
+    {
+        compl_row = nmb_lines - row - 1;
+        //printf("Starting computation for row %d and compl_row %d\n", row, compl_row);
+        short int *attr = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int *conv = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int *attr_compl = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int *conv_compl = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+
+        row_imag = 2 - row * stepping;
+        x0 = -2 + row_imag * I;
+        for (size_t col = 0; col < nmb_lines; ++col)
+        {
+            //printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x1), cimag(x1));
+
+            short int calculated_root = compute_root(x0, &conv[col]);
+
+            compl_root = complementary_root[calculated_root];
+            //check for complementary root
+            if(compl_root == -1) {
+                //have to compute complementary root
+                double real = creal(x0);
+                double imag = cimag(x0);
+                //build complex number
+                compl_root = compute_root((real + (imag * (-1) * I)), &conv_compl[col]);
+
+                //this if is needed in the outer most row, otherwise we get wrong color values on e.g. 2-2*I
+                if(row == 0 && (fabs(real) != 2.0 || fabs(imag) != 2.0)) {
+                    pthread_mutex_lock(&compl_root_mutex);
+                    complementary_root[calculated_root] = compl_root;
+                    complementary_root[compl_root] = calculated_root;
+                    pthread_mutex_unlock(&compl_root_mutex);
+                }
+            }
+            attr[col] = calculated_root;
+            attr_compl[col] = compl_root;
+            //TODO conv is same number ?!
+            conv_compl[col] = conv[col];
+
+            //go to next col
+            x0 += stepping;
+        }
+
+        attractors[row] = attr;
+        convergences[row] = conv;
+        attractors[compl_row] = attr_compl;
+        convergences[compl_row] = conv_compl;
+
+        pthread_mutex_lock(&item_done_mutex);
+        item_done[row] = item_done[compl_row] = 1;
+        pthread_mutex_unlock(&item_done_mutex);
+    }
+    //in case of an odd number of lines one thread has to do the middle line
+    if(nmb_lines % 2 != 0) {
+        short int *attr = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+        short int *conv = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
+
+        int row = nmb_lines / 2;
+        x0 = -2 + 0 * I;
+        //printf("Starting computation for middle row (%d)\n", row);
+        for (size_t col = 0; col < nmb_lines; ++col)
+        {
+            short int calculated_root = compute_root(x0, &conv[col]);
+            attr[col] = calculated_root;
+            //go to next col
+            x0 += stepping;
+        }
+        attractors[row] = attr;
+        convergences[row] = conv;
+        pthread_mutex_lock(&item_done_mutex);
+        item_done[row] = 1;
         pthread_mutex_unlock(&item_done_mutex);
     }
     return NULL;
@@ -390,7 +456,6 @@ void *write_method(void *args)
             //When writing an item (i.e. a row) write the prepared strings directly to file via fwrite.
             res_attr = attractors[ix];
             res_conv = convergences[ix];
-            //printf("\t ## Writing line %lu\n", ix);
 
             //write line
             for (size_t j = 0; j < nmb_lines; j++)
@@ -400,6 +465,7 @@ void *write_method(void *args)
                 convergence_chars = sprintf(buffer, "%03d %03d %03d ", res_conv[j], res_conv[j], res_conv[j]);
                 fwrite(buffer, sizeof(char), convergence_chars, conv_file);
             }
+            //printf("Wrote line\n");
             fwrite("\n", sizeof(char), 1, attr_file);
             fwrite("\n", sizeof(char), 1, conv_file);
 
