@@ -52,7 +52,7 @@ static inline double complex compute_next_x(double complex previous_x, double d)
 
 /*
  */
-static inline short compute_root(double complex x1, short int *conv);
+static inline void compute_root(double complex x1, short int *attr, short int *conv);
 
 //--    variables              //////////////////////////////////////////////////
 
@@ -186,10 +186,9 @@ void *compute_main(void *args)
         {
             //printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x1), cimag(x1));
 
-            short int calculated_root = compute_root(x0, &conv[col]);
+            compute_root(x0, &attr[col], &conv[col]);
 
             //printf("(%0.3f,%0.3fi)-[%d,%d] converges to root %d\n", creal(x0), cimag(x0), row, col, calculated_root);
-            attr[col] = calculated_root;
             //go to next col
             x0 += stepping;
         }
@@ -204,7 +203,7 @@ void *compute_main(void *args)
     return NULL;
 }
 
-static inline short compute_root(double complex x1, short int *conv)
+static inline void compute_root(double complex x1, short int *attr, short int *conv)
 {
     short int iterations = 0;
     double complex difference;
@@ -226,7 +225,8 @@ static inline short compute_root(double complex x1, short int *conv)
                     //printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[poly-1][ix]),cimag(root[poly-1][ix]));
                     //attr[col] = ix;
                     *conv = iterations < 100 ? iterations : 99;
-                    return ix;
+                    *attr = ix;
+                    return;
                 }
             }
             if ((realx1 * realx1 + imagx1 * imagx1) <= EPSILON)
@@ -234,14 +234,16 @@ static inline short compute_root(double complex x1, short int *conv)
                 //printf("special case x1 tends to 0\n");
                 //write maximal 99 otherwise ppm file would be wrong with max value 100
                 *conv = iterations < 100 ? iterations : 99;
-                return 9;
+                *attr = 9;
+                return;
             }
         }
         if (realx1 > N_ROOT || realx1 < -N_ROOT || imagx1 > N_ROOT || imagx1 < -N_ROOT)
         { //trying not to use cabs()
             //printf("special case x1 >= 10000000000\n");
             *conv = iterations < 100 ? iterations : 99;
-            return 10;
+            *attr = 10;
+            return;
         }
 
         x1 = compute_next_x(x1, poly);
@@ -277,7 +279,7 @@ void *write_method(void *args)
     short int *res_attr; //used to point to current row to handle
     short int *res_conv; //used to point to current row to handle
 
-    int attractor_chars, convergence_chars;
+    short int number_of_chars;
 
     // ---- ---- ---- color values for attractors ---- ---- ----
     char *colors[11] = {
@@ -293,28 +295,47 @@ void *write_method(void *args)
         "0 0 0 ", //black, converging to 0
         "5 5 5 "  //white, converging to inf
     };
+    char *greys[100] = {
+        "000 000 000 ", "001 001 001 ", "002 002 002 ", "009 003 003 ", "004 004 004 ", "005 005 005 ", "006 006 006 ", "007 007 007 ", "008 008 008 ", "009 009 009 ",
+        "010 010 010 ", "011 011 011 ", "012 012 012 ", "019 013 013 ", "014 014 014 ", "015 015 015 ", "016 016 016 ", "017 017 017 ", "018 018 018 ", "019 019 019 ", 
+        "020 020 020 ", "021 021 021 ", "022 022 022 ", "029 023 023 ", "024 024 024 ", "025 025 025 ", "026 026 026 ", "027 027 027 ", "028 028 028 ", "029 029 029 ", 
+        "030 030 030 ", "031 031 031 ", "032 032 032 ", "039 033 033 ", "034 034 034 ", "035 035 035 ", "036 036 036 ", "037 037 037 ", "038 038 038 ", "039 039 039 ", 
+        "040 040 040 ", "041 041 041 ", "042 042 042 ", "049 043 043 ", "044 044 044 ", "045 045 045 ", "046 046 046 ", "047 047 047 ", "048 048 048 ", "049 049 049 ", 
+        "050 050 050 ", "051 051 051 ", "052 052 052 ", "059 053 053 ", "054 054 054 ", "055 055 055 ", "056 056 056 ", "057 057 057 ", "058 058 058 ", "059 059 059 ", 
+        "060 060 060 ", "061 061 061 ", "062 062 062 ", "069 063 063 ", "064 064 064 ", "065 065 065 ", "066 066 066 ", "067 067 067 ", "068 068 068 ", "069 069 069 ", 
+        "070 070 070 ", "071 071 071 ", "072 072 072 ", "079 073 073 ", "074 074 074 ", "075 075 075 ", "076 076 076 ", "077 077 077 ", "078 078 078 ", "079 079 079 ", 
+        "080 080 080 ", "081 081 081 ", "082 082 082 ", "089 083 083 ", "084 084 084 ", "085 085 085 ", "086 086 086 ", "087 087 087 ", "088 088 088 ", "089 089 089 ", 
+        "090 090 090 ", "091 091 091 ", "092 092 092 ", "099 093 093 ", "094 094 094 ", "095 095 095 ", "096 096 096 ", "097 097 097 ", "098 098 098 ", "099 099 099 "
+    };
 
     // ---- ---- ---- create / open both files ---- ---- ----
 
-    char buffer[128]; //we need 25 chars since sprintf automatically null terminates!!
-    sprintf(buffer, "newton_attractors_x%hu.ppm", poly);
-    if ((attr_file = fopen(buffer, "w")) == NULL)
+    char buffer_attr[nmb_lines * 6 + 1]; //sprintf automatically null terminates!!
+    char buffer_conv[nmb_lines * 12 + 1];
+    sprintf(buffer_attr, "newton_attractors_x%hu.ppm", poly);
+    attr_file = fopen(buffer_attr, "w");
+    /*
+    if ((attr_file = fopen(buffer_attr, "w")) == NULL)
     {
         fprintf(stderr, "Cannot open attractor file to write! Exiting.\n");
         exit(EXIT_FAILURE);
     }
-    sprintf(buffer, "newton_convergence_x%hu.ppm", poly);
-    if ((conv_file = fopen(buffer, "w")) == NULL)
+    */
+    sprintf(buffer_attr, "newton_convergence_x%hu.ppm", poly);
+    conv_file = fopen(buffer_attr, "w");
+    /*
+    if ((conv_file = fopen(buffer_attr, "w")) == NULL)
     {
         fprintf(stderr, "Cannot open convergence file to write! Exiting.\n");
         exit(EXIT_FAILURE);
     }
+    */
 
     // ---- ---- ---- write headers of ppm files ---- ---- ----
-    attractor_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 5); //color image
-    fwrite(buffer, sizeof(char), attractor_chars, attr_file);
-    convergence_chars = sprintf(buffer, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 100); //grayscale TODO: in example ppm file the max color is 100 ?!
-    fwrite(buffer, sizeof(char), convergence_chars, conv_file);
+    number_of_chars = sprintf(buffer_attr, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 5); //color image
+    fwrite(buffer_attr, sizeof(char), number_of_chars, attr_file);
+    number_of_chars = sprintf(buffer_attr, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 100); //grayscale with max color 100
+    fwrite(buffer_attr, sizeof(char), number_of_chars, conv_file);
 
     // ---- ---- ---- write rows ---- ---- ----
 
@@ -345,14 +366,14 @@ void *write_method(void *args)
             //write line
             for (size_t j = 0; j < nmb_lines; j++)
             {
-                //printf("\t # [%d,%d] root %lu\n", ix, j, res_attr[j]);
-                fwrite(colors[res_attr[j]], sizeof(char), 6, attr_file);
-                convergence_chars = sprintf(buffer, "%03d %03d %03d ", res_conv[j], res_conv[j], res_conv[j]);
-                fwrite(buffer, sizeof(char), convergence_chars, conv_file);
+                memcpy(buffer_attr + j * 6, colors[res_attr[j]], 6);
+                memcpy(buffer_conv + j * 12, greys[res_conv[j]], 12);
             }
-            //printf("Wrote line\n");
-            fwrite("\n", sizeof(char), 1, attr_file);
-            fwrite("\n", sizeof(char), 1, conv_file);
+            memcpy(buffer_attr + nmb_lines*6, "\n", 1);
+            memcpy(buffer_conv + nmb_lines*12, "\n", 1);
+
+            fwrite(buffer_attr, sizeof(char), sizeof(buffer_attr), attr_file);
+            fwrite(buffer_conv, sizeof(char), sizeof(buffer_conv), conv_file);
 
             free(res_attr);
             free(res_conv);
