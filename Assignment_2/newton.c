@@ -292,7 +292,7 @@ static inline double complex compute_next_x(double complex z, double f) {
 			break;
 		
 		default:
-			break;
+			return -1;
 	}
 }
 
