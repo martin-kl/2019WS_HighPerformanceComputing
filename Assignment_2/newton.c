@@ -360,7 +360,7 @@ void *write_method(void *args)
 {
     FILE *attr_file;
     FILE *conv_file;
-    struct timespec sleep2ms = {0, 2000000L}; // 2 ms
+    struct timespec sleep1ms = {0, 1000000L}; // 1 ms
 
     short int *res_attr; //used to point to current row to handle
     short int *res_conv; //used to point to current row to handle
@@ -418,7 +418,7 @@ void *write_method(void *args)
         {
             //TODO try to find "good" value for sleep time - this just prevents us
             //from aquiring the lock over and over again if there is no work
-            nanosleep(&sleep2ms, NULL);
+            nanosleep(&sleep1ms, NULL);
             continue;
         }
 
