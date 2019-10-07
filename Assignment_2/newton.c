@@ -249,23 +249,49 @@ static inline short compute_root(double complex x1, short int *conv)
     }
 }
 
-static inline double complex compute_next_x(double complex previous_x, double d)
-{
-    double real, imag, add_for_correction, r, theta;
-
-    real = creal(previous_x);
-    imag = cimag(previous_x);
-    add_for_correction = 0;
-
-    if (real < 0)
-        add_for_correction = M_PI;
-    else if (imag < 0)
-        add_for_correction = 2 * M_PI;
-
-    r = sqrt(real * real + imag * imag);
-    theta = atan(imag / real) + add_for_correction;
-
-    return (previous_x - (((pow(r, d) * (cos(d * theta) + I * sin(d * theta))) - 1) / (d * (pow(r, (d - 1)) * (cos((d - 1) * theta) + I * sin((d - 1) * theta))))));
+static inline double complex compute_next_x(double complex z, double f) {
+	int d = (int)f;
+	switch (d)
+	{
+		case 1:
+			return (1);
+			break;
+			
+		case 2:
+			return (z - (z - (1/(z)))/d);
+			break;
+			
+		case 3:
+			return (z - (z - (1/(z*z)))/d);
+			break;
+			
+		case 4:
+			return (z - (z - (1/(z*z*z)))/d);
+			break;
+			
+		case 5:
+			return (z - (z - (1/(z*z*z*z)))/d);
+			break;
+			
+		case 6:
+			return (z - (z - (1/(z*z*z*z*z)))/d);
+			break;
+			
+		case 7:
+			return (z - (z - (1/(z*z*z*z*z*z)))/d);
+			break;
+			
+		case 8:
+			return (z - (z - (1/(z*z*z*z*z*z*z)))/d);
+			break;
+			
+		case 9:
+			return (z - (z - (1/(z*z*z*z*z*z*z*z)))/d);
+			break;
+		
+		default:
+			break;
+	}
 }
 
 void *write_method(void *args)
