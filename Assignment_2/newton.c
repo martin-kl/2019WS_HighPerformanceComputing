@@ -11,7 +11,7 @@
 
 #define M_PI 3.14159265358979323846
 #define EPSILON 0.000001 // already squared to milk the miliseconds
-#define N_ROOT 99999999999
+#define N_ROOT 9999999999
 
 //--    prototypes              //////////////////////////////////////////////////
 
@@ -73,7 +73,17 @@ static double complex root[9][9] = {
     {1, -0.9009688679 + 0.4338837391 * I, -0.9009688679 - 0.4338837391 * I, -0.2225209339 + 0.9749279121 * I, -0.2225209339 - 0.9749279121 * I, 0.6234898018 + 0.7818314824 * I, 0.6234898018 - 0.7818314824 * I, 0, 0},                                            // roots for x^7 - 1, d = 7
     {1, -1, 1 * I, -1 * I, -0.7071067811 + 0.7071067811 * I, -0.7071067811 - 0.7071067811 * I, 0.7071067811 + 0.7071067811 * I, 0.7071067811 - 0.7071067811 * I, 0},                                                                                                // roots for x^8 - 1, d = 8
     {1, -0.9396926207 + 0.3420201433 * I, -0.9396926207 - 0.3420201433 * I, -0.5 + 0.8660254037 * I, -0.5 - 0.8660254037 * I, 0.1736481776 + 0.9848077530 * I, 0.1736481776 - 0.9848077530 * I, 0.7660444431 + 0.6427876096 * I, 0.7660444431 - 0.6427876096 * I}}; // roots for x^9 - 1, d = 9
-short complementary_root[9] = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
+short conjugate_root[9][9] = {
+    {0, -1, -1, -1, -1, -1, -1, -1, -1},
+    {0, 1, -1, -1, -1, -1, -1, -1, -1},
+    {0, 2, 1, -1, -1, -1, -1, -1, -1},
+    {0, 1, 3, 2, -1, -1, -1, -1, -1},
+    {0, 2, 1, 4, 3, -1, -1, -1, -1},
+    {0, 1, 3, 2, 5, 4, -1, -1, -1},
+    {0, 2, 1, 4, 3, 6, 5, -1, -1},
+    {0, 1, 3, 2, 5, 4, 7, 6, -1},
+    {0, 2, 1, 4, 3, 6, 5, 8, 7}
+};
 
 //TODO check if these data types are correct / perfect for us
 // [Martin:] since we have not so many roots char should be enough ?!
@@ -83,7 +93,6 @@ short int **convergences; // number iterations
 char *item_done;
 
 pthread_mutex_t item_done_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t compl_root_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //--    main()              //////////////////////////////////////////////////
 
@@ -147,7 +156,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     pthread_mutex_destroy(&item_done_mutex);
-    pthread_mutex_destroy(&compl_root_mutex);
 
     //free variables again
     free(attractors);
@@ -179,7 +187,6 @@ void *compute_main(void *args)
 
     //double complex x1;
     double complex x0;
-    short int compl_root;
 
     int compl_row;
 
@@ -199,28 +206,12 @@ void *compute_main(void *args)
             //printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x1), cimag(x1));
 
             short int calculated_root = compute_root(x0, &conv[col]);
+            short int conj_root = conjugate_root[poly-1][calculated_root];
 
-            compl_root = complementary_root[calculated_root];
-            //check for complementary root
-            if(compl_root == -1) {
-                //have to compute complementary root
-                double real = creal(x0);
-                double imag = cimag(x0);
-                //build complex number
-                compl_root = compute_root((real + (imag * (-1) * I)), &conv_compl[col]);
-
-                // this if is not needed here, only in the thread 0 (outer most row)
-                //if(fabs(real) != 2.0 || fabs(imag) != 2.0) {
-                    pthread_mutex_lock(&compl_root_mutex);
-                    complementary_root[calculated_root] = compl_root;
-                    complementary_root[compl_root] = calculated_root;
-                    pthread_mutex_unlock(&compl_root_mutex);
-                //}
-            }
             //printf("(%0.3f,%0.3fi)-[%d,%d] converges to root %d\n", creal(x0), cimag(x0), row, col, calculated_root);
-            //printf("\t[%d,%d] converges to root %d\n\n", compl_row, col, compl_root);
+            //printf("\t[%d,%d] converges to root %d\n\n", compl_row, col, conj_root);
             attr[col] = calculated_root;
-            attr_compl[col] = compl_root;
+            attr_compl[col] = conj_root;
             //TODO conv is same number ?!
             conv_compl[col] = conv[col];
 
@@ -244,7 +235,6 @@ void *compute_thread_0(void *args)
 {
     double row_imag;
     double complex x0;
-    short int compl_root;
     int compl_row;
 
     for (size_t row = 0; row < nmb_lines / 2; row += nmb_threads)
@@ -264,25 +254,8 @@ void *compute_thread_0(void *args)
 
             short int calculated_root = compute_root(x0, &conv[col]);
 
-            compl_root = complementary_root[calculated_root];
-            //check for complementary root
-            if(compl_root == -1) {
-                //have to compute complementary root
-                double real = creal(x0);
-                double imag = cimag(x0);
-                //build complex number
-                compl_root = compute_root((real + (imag * (-1) * I)), &conv_compl[col]);
-
-                //this if is needed in the outer most row, otherwise we get wrong color values on e.g. 2-2*I
-                if(row == 0 && (fabs(real) != 2.0 || fabs(imag) != 2.0)) {
-                    pthread_mutex_lock(&compl_root_mutex);
-                    complementary_root[calculated_root] = compl_root;
-                    complementary_root[compl_root] = calculated_root;
-                    pthread_mutex_unlock(&compl_root_mutex);
-                }
-            }
             attr[col] = calculated_root;
-            attr_compl[col] = compl_root;
+            attr_compl[col] = conjugate_root[poly-1][calculated_root];;
             //TODO conv is same number ?!
             conv_compl[col] = conv[col];
 
@@ -309,8 +282,7 @@ void *compute_thread_0(void *args)
         //printf("Starting computation for middle row (%d)\n", row);
         for (size_t col = 0; col < nmb_lines; ++col)
         {
-            short int calculated_root = compute_root(x0, &conv[col]);
-            attr[col] = calculated_root;
+             attr[col] = compute_root(x0, &conv[col]);
             //go to next col
             x0 += stepping;
         }
@@ -334,6 +306,17 @@ static inline short compute_root(double complex x1, short int *conv) {
         double realx1 = creal(x1);
         double imagx1 = cimag(x1);
 
+        for (size_t ix = 0; ix < poly; ix++)
+        {
+            difference = x1 - root[poly - 1][ix];
+            if ((creal(difference) * creal(difference) + cimag(difference) * cimag(difference)) <= EPSILON)
+            { // trying not to use cabs()
+                //printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[poly-1][ix]),cimag(root[poly-1][ix]));
+                //attr[col] = ix;
+                *conv = iterations < 100 ? iterations : 99;
+                return ix;
+            }
+        }
         if ((realx1 * realx1 + imagx1 * imagx1) <= EPSILON)
         { //trying not to use cabs()
             //printf("special case x1 tends to 0\n");
@@ -348,17 +331,7 @@ static inline short compute_root(double complex x1, short int *conv) {
             return 10;
         }
 
-        for (size_t ix = 0; ix < poly; ix++)
-        {
-            difference = x1 - root[poly - 1][ix];
-            if ((creal(difference) * creal(difference) + cimag(difference) * cimag(difference)) <= EPSILON)
-            { // trying not to use cabs()
-                //printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[poly-1][ix]),cimag(root[poly-1][ix]));
-                //attr[col] = ix;
-                *conv = iterations < 100 ? iterations : 99;
-                return ix;
-            }
-        }
+
         x1 = compute_next_x(x1, poly);
         iterations++;
     }
