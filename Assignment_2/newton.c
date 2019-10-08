@@ -13,8 +13,12 @@
 #define EPSILON 0.000001 // already squared to milk the miliseconds
 #define N_ROOT 9999999999
 
+// Set TIMING to 1 to print additional, non-essential information.
+#define TIMING 0
+
 //--    prototypes              //////////////////////////////////////////////////
 
+# if TIMING
 void timespec_diff(struct timespec *start, struct timespec *stop, struct timespec *result)
 {
     if ((stop->tv_nsec - start->tv_nsec) < 0)
@@ -29,6 +33,7 @@ void timespec_diff(struct timespec *start, struct timespec *stop, struct timespe
     }
     return;
 }
+# endif
 
 /*
  */
@@ -73,8 +78,6 @@ static double complex root[9][9] = {
     {1, -1, 1 * I, -1 * I, -0.7071067811 + 0.7071067811 * I, -0.7071067811 - 0.7071067811 * I, 0.7071067811 + 0.7071067811 * I, 0.7071067811 - 0.7071067811 * I, 0},                                                                                                // roots for x^8 - 1, d = 8
     {1, -0.9396926207 + 0.3420201433 * I, -0.9396926207 - 0.3420201433 * I, -0.5 + 0.8660254037 * I, -0.5 - 0.8660254037 * I, 0.1736481776 + 0.9848077530 * I, 0.1736481776 - 0.9848077530 * I, 0.7660444431 + 0.6427876096 * I, 0.7660444431 - 0.6427876096 * I}}; // roots for x^9 - 1, d = 9
 
-//TODO check if these data types are correct / perfect for us
-// [Martin:] since we have not so many roots char should be enough ?!
 short int **attractors;   // roots
 short int **convergences; // number iterations
 
@@ -86,11 +89,13 @@ pthread_mutex_t item_done_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char *argv[])
 {
+#   if TIMING
     struct timespec start;
     struct timespec end;
     struct timespec diff;
 
     timespec_get(&start, TIME_UTC);
+#   endif
 
     char *progname;
 
@@ -150,6 +155,7 @@ int main(int argc, char *argv[])
     free(item_done);
     free(compute_threads);
 
+#   if TIMING
     timespec_get(&end, TIME_UTC);
     timespec_diff(&start, &end, &diff);
 
@@ -158,6 +164,7 @@ int main(int argc, char *argv[])
     double t = t1 * 1000 + t2;
 
     printf("Time :\t%fms\n", t);
+#   endif
 
     return (EXIT_SUCCESS);
 }
@@ -176,7 +183,6 @@ void *compute_main(void *args)
 
     for (size_t row = offset; row < nmb_lines; row += nmb_threads)
     {
-        //printf("Starting computation for row %d and compl_row %d\n", row, compl_row);
         short int *attr = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
         short int *conv = (short int *)malloc(sizeof(short int) * nmb_lines); //nmb_lines = nmb_rows
 
@@ -184,11 +190,8 @@ void *compute_main(void *args)
         x0 = -2 + row_imag * I;
         for (size_t col = 0; col < nmb_lines; ++col)
         {
-            //printf("t%ld starting computation for (%0.3f,%0.3fi)\n", offset, creal(x1), cimag(x1));
-
             compute_root(x0, &attr[col], &conv[col]);
 
-            //printf("(%0.3f,%0.3fi)-[%d,%d] converges to root %d\n", creal(x0), cimag(x0), row, col, calculated_root);
             //go to next col
             x0 += stepping;
         }
@@ -210,8 +213,6 @@ static inline void compute_root(double complex x1, short int *attr, short int *c
 
     while (1)
     {
-        //x1 = x0 - (cpow(x0, poly) - 1) / (poly * cpow(x0, poly - 1));
-        //printf("#%d - x1: %g, %gi\n", iterations, creal(x1),cimag(x1));
         double realx1 = creal(x1);
         double imagx1 = cimag(x1);
 
@@ -222,8 +223,6 @@ static inline void compute_root(double complex x1, short int *attr, short int *c
                 difference = x1 - root[poly - 1][ix];
                 if ((creal(difference) * creal(difference) + cimag(difference) * cimag(difference)) <= EPSILON)
                 { // trying not to use cabs()
-                    //printf("this point converges to root number %ld = %.15f + %.15f i\n",ix + 1,creal(root[poly-1][ix]),cimag(root[poly-1][ix]));
-                    //attr[col] = ix;
                     *conv = iterations < 100 ? iterations : 99;
                     *attr = ix;
                     return;
@@ -231,8 +230,7 @@ static inline void compute_root(double complex x1, short int *attr, short int *c
             }
             if ((realx1 * realx1 + imagx1 * imagx1) <= EPSILON)
             { //trying not to use cabs()
-                //printf("special case x1 tends to 0\n");
-                //write maximal 99 otherwise ppm file would be wrong with max value 100
+                //write maximal 99 (since we are allowed to cap), otherwise ppm file would be wrong with max value 100
                 *conv = iterations < 100 ? iterations : 99;
                 *attr = 9;
                 return;
@@ -240,7 +238,6 @@ static inline void compute_root(double complex x1, short int *attr, short int *c
         }
         if (realx1 > N_ROOT || realx1 < -N_ROOT || imagx1 > N_ROOT || imagx1 < -N_ROOT)
         { //trying not to use cabs()
-            //printf("special case x1 >= 10000000000\n");
             *conv = iterations < 100 ? iterations : 99;
             *attr = 10;
             return;
@@ -251,49 +248,50 @@ static inline void compute_root(double complex x1, short int *attr, short int *c
     }
 }
 
-static inline double complex compute_next_x(double complex z, double f) {
-	int d = (int)f;
-	switch (d)
-	{
-		case 1:
-			return (1);
-			break;
-			
-		case 2:
-			return (z - (z - (1/(z)))/d);
-			break;
-			
-		case 3:
-			return (z - (z - (1/(z*z)))/d);
-			break;
-			
-		case 4:
-			return (z - (z - (1/(z*z*z)))/d);
-			break;
-			
-		case 5:
-			return (z - (z - (1/(z*z*z*z)))/d);
-			break;
-			
-		case 6:
-			return (z - (z - (1/(z*z*z*z*z)))/d);
-			break;
-			
-		case 7:
-			return (z - (z - (1/(z*z*z*z*z*z)))/d);
-			break;
-			
-		case 8:
-			return (z - (z - (1/(z*z*z*z*z*z*z)))/d);
-			break;
-			
-		case 9:
-			return (z - (z - (1/(z*z*z*z*z*z*z*z)))/d);
-			break;
-		
-		default:
-			return -1;
-	}
+static inline double complex compute_next_x(double complex z, double f)
+{
+    int d = (int)f;
+    switch (d)
+    {
+    case 1:
+        return (1);
+        break;
+
+    case 2:
+        return (z - (z - (1 / (z))) / d);
+        break;
+
+    case 3:
+        return (z - (z - (1 / (z * z))) / d);
+        break;
+
+    case 4:
+        return (z - (z - (1 / (z * z * z))) / d);
+        break;
+
+    case 5:
+        return (z - (z - (1 / (z * z * z * z))) / d);
+        break;
+
+    case 6:
+        return (z - (z - (1 / (z * z * z * z * z))) / d);
+        break;
+
+    case 7:
+        return (z - (z - (1 / (z * z * z * z * z * z))) / d);
+        break;
+
+    case 8:
+        return (z - (z - (1 / (z * z * z * z * z * z * z))) / d);
+        break;
+
+    case 9:
+        return (z - (z - (1 / (z * z * z * z * z * z * z * z))) / d);
+        break;
+
+    default:
+        return -1;
+    }
 }
 
 void *write_method(void *args)
@@ -323,39 +321,32 @@ void *write_method(void *args)
     };
     char *greys[100] = {
         "000 000 000 ", "001 001 001 ", "002 002 002 ", "009 003 003 ", "004 004 004 ", "005 005 005 ", "006 006 006 ", "007 007 007 ", "008 008 008 ", "009 009 009 ",
-        "010 010 010 ", "011 011 011 ", "012 012 012 ", "019 013 013 ", "014 014 014 ", "015 015 015 ", "016 016 016 ", "017 017 017 ", "018 018 018 ", "019 019 019 ", 
-        "020 020 020 ", "021 021 021 ", "022 022 022 ", "029 023 023 ", "024 024 024 ", "025 025 025 ", "026 026 026 ", "027 027 027 ", "028 028 028 ", "029 029 029 ", 
-        "030 030 030 ", "031 031 031 ", "032 032 032 ", "039 033 033 ", "034 034 034 ", "035 035 035 ", "036 036 036 ", "037 037 037 ", "038 038 038 ", "039 039 039 ", 
-        "040 040 040 ", "041 041 041 ", "042 042 042 ", "049 043 043 ", "044 044 044 ", "045 045 045 ", "046 046 046 ", "047 047 047 ", "048 048 048 ", "049 049 049 ", 
-        "050 050 050 ", "051 051 051 ", "052 052 052 ", "059 053 053 ", "054 054 054 ", "055 055 055 ", "056 056 056 ", "057 057 057 ", "058 058 058 ", "059 059 059 ", 
-        "060 060 060 ", "061 061 061 ", "062 062 062 ", "069 063 063 ", "064 064 064 ", "065 065 065 ", "066 066 066 ", "067 067 067 ", "068 068 068 ", "069 069 069 ", 
-        "070 070 070 ", "071 071 071 ", "072 072 072 ", "079 073 073 ", "074 074 074 ", "075 075 075 ", "076 076 076 ", "077 077 077 ", "078 078 078 ", "079 079 079 ", 
-        "080 080 080 ", "081 081 081 ", "082 082 082 ", "089 083 083 ", "084 084 084 ", "085 085 085 ", "086 086 086 ", "087 087 087 ", "088 088 088 ", "089 089 089 ", 
-        "090 090 090 ", "091 091 091 ", "092 092 092 ", "099 093 093 ", "094 094 094 ", "095 095 095 ", "096 096 096 ", "097 097 097 ", "098 098 098 ", "099 099 099 "
-    };
+        "010 010 010 ", "011 011 011 ", "012 012 012 ", "019 013 013 ", "014 014 014 ", "015 015 015 ", "016 016 016 ", "017 017 017 ", "018 018 018 ", "019 019 019 ",
+        "020 020 020 ", "021 021 021 ", "022 022 022 ", "029 023 023 ", "024 024 024 ", "025 025 025 ", "026 026 026 ", "027 027 027 ", "028 028 028 ", "029 029 029 ",
+        "030 030 030 ", "031 031 031 ", "032 032 032 ", "039 033 033 ", "034 034 034 ", "035 035 035 ", "036 036 036 ", "037 037 037 ", "038 038 038 ", "039 039 039 ",
+        "040 040 040 ", "041 041 041 ", "042 042 042 ", "049 043 043 ", "044 044 044 ", "045 045 045 ", "046 046 046 ", "047 047 047 ", "048 048 048 ", "049 049 049 ",
+        "050 050 050 ", "051 051 051 ", "052 052 052 ", "059 053 053 ", "054 054 054 ", "055 055 055 ", "056 056 056 ", "057 057 057 ", "058 058 058 ", "059 059 059 ",
+        "060 060 060 ", "061 061 061 ", "062 062 062 ", "069 063 063 ", "064 064 064 ", "065 065 065 ", "066 066 066 ", "067 067 067 ", "068 068 068 ", "069 069 069 ",
+        "070 070 070 ", "071 071 071 ", "072 072 072 ", "079 073 073 ", "074 074 074 ", "075 075 075 ", "076 076 076 ", "077 077 077 ", "078 078 078 ", "079 079 079 ",
+        "080 080 080 ", "081 081 081 ", "082 082 082 ", "089 083 083 ", "084 084 084 ", "085 085 085 ", "086 086 086 ", "087 087 087 ", "088 088 088 ", "089 089 089 ",
+        "090 090 090 ", "091 091 091 ", "092 092 092 ", "099 093 093 ", "094 094 094 ", "095 095 095 ", "096 096 096 ", "097 097 097 ", "098 098 098 ", "099 099 099 "};
 
     // ---- ---- ---- create / open both files ---- ---- ----
 
     char buffer_attr[nmb_lines * 6 + 1]; //sprintf automatically null terminates!!
     char buffer_conv[nmb_lines * 12 + 1];
     sprintf(buffer_attr, "newton_attractors_x%hu.ppm", poly);
-    attr_file = fopen(buffer_attr, "w");
-    /*
     if ((attr_file = fopen(buffer_attr, "w")) == NULL)
     {
         fprintf(stderr, "Cannot open attractor file to write! Exiting.\n");
         exit(EXIT_FAILURE);
     }
-    */
     sprintf(buffer_attr, "newton_convergence_x%hu.ppm", poly);
-    conv_file = fopen(buffer_attr, "w");
-    /*
     if ((conv_file = fopen(buffer_attr, "w")) == NULL)
     {
         fprintf(stderr, "Cannot open convergence file to write! Exiting.\n");
         exit(EXIT_FAILURE);
     }
-    */
 
     // ---- ---- ---- write headers of ppm files ---- ---- ----
     number_of_chars = sprintf(buffer_attr, "P3\n%d %d\n%d\n", nmb_lines, nmb_lines, 5); //color image
@@ -375,7 +366,7 @@ void *write_method(void *args)
 
         if (item_done_loc[ix] == 0)
         {
-            //TODO try to find "good" value for sleep time - this just prevents us
+            //try to find "good" value for sleep time - this just prevents us
             //from aquiring the lock over and over again if there is no work
             nanosleep(&sleep1ms, NULL);
             continue;
@@ -383,20 +374,17 @@ void *write_method(void *args)
 
         for (; ix < nmb_lines && item_done_loc[ix] != 0; ++ix)
         {
-            //Prior to iterating through the items, prepare strings for each triple of
-            //color and gray values that you will need. You can either hardcode them or employ sprintf.
-            //When writing an item (i.e. a row) write the prepared strings directly to file via fwrite.
             res_attr = attractors[ix];
             res_conv = convergences[ix];
 
-            //write line
+            //prepare string for this line
             for (size_t j = 0; j < nmb_lines; j++)
             {
                 memcpy(buffer_attr + j * 6, colors[res_attr[j]], 6);
                 memcpy(buffer_conv + j * 12, greys[res_conv[j]], 12);
             }
-            memcpy(buffer_attr + nmb_lines*6, "\n", 1);
-            memcpy(buffer_conv + nmb_lines*12, "\n", 1);
+            memcpy(buffer_attr + nmb_lines * 6, "\n", 1);
+            memcpy(buffer_conv + nmb_lines * 12, "\n", 1);
 
             fwrite(buffer_attr, sizeof(char), sizeof(buffer_attr), attr_file);
             fwrite(buffer_conv, sizeof(char), sizeof(buffer_conv), conv_file);
@@ -434,7 +422,7 @@ long convertToInt(char *arg)
 
     /* If we got here, strtol() successfully parsed a number */
     if (*endptr != '\0')
-    { /* In principle not necessarily an error... */
+    { /* In principle not necessarily an error but we exit */
         fprintf(stderr, "Attention: further characters after number: %s\n", endptr);
         exit(EXIT_FAILURE);
     }
