@@ -10,7 +10,7 @@ all : newton
 # $@ = target
 # $< = source
 newton :
-	$(CC) -Wall $(CFLAGS) $(Cnewton) -o $@ -lpthread -lm
+	$(CC) -Wall $(CFLAGS) -march=native $(Cnewton) -o $@ -lpthread -lm
 
 # also removes all *.o files
 clean:
