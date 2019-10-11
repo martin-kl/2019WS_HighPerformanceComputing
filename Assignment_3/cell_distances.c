@@ -7,9 +7,14 @@
 #include <omp.h>
 
 #define FILENAME "cells"
+#define MAX_DIST_NUM 2828
+#define ALLOWED_BLOCK_SIZE 20 // number of points allowed to load each time in order to not exceed 1Mb
+#define FIXED_BLOCK_SIZE 5
 
 void parseArguments(int argc, char *argv[], char *progname, short unsigned *threads);
 long convertToInt(char *arg);
+
+
 
 //--    main()              //////////////////////////////////////////////////
 
@@ -17,6 +22,8 @@ int main(int argc, char *argv[])
 {
     char *progname;
     short unsigned threads;
+    char *allowed_block = malloc((ALLOWED_BLOCK_SIZE)*(7*sizeof(char)));
+
 
     FILE *fp;
     //TODO think about reading in points
@@ -43,6 +50,44 @@ int main(int argc, char *argv[])
     //set max number of threads for omp
     if(threads < omp_get_max_threads()) {
         omp_set_num_threads(threads);
+    }
+
+
+
+
+    //finding distances:
+    // declaration and intialization of array to store fixed n points
+    float fixed_points[FIXED_BLOCK_SIZE];// have to be initialized afer each loop with the points in the next fixed block
+    // creation of vector with all the possible distances stored in order: min 0.01 max 28.28
+    float p_dist[MAX_DIST_NUM][2];
+    for (size_t ix = 0; ix < MAX_DIST_NUM; ix++) {
+      p_dist[ix][0] += 0.01;
+    }
+    //store current distance
+    float dist_temp;
+    size_t read_items;
+
+    while ((read_items = fread(allowed_block, sizeof(char), ALLOWED_BLOCK_SIZE, fp)) > 0){
+
+      printf("%s ", allowed_block);
+
+      for (size_t ix = 0; ix < FIXED_BLOCK_SIZE; ix++) {
+
+        fixed_points[ix] = allowed_block[ix]; // initializing fixed block
+
+        for (size_t kx = 1; kx < ALLOWED_BLOCK_SIZE - ix; kx++) {
+
+          dist_temp = fixed_points[ix] - allowed_block[kx + ix]; // calculating distances from each element of fixed block to all the elements of the current allowed block
+
+          //counting specific distance
+          for (size_t jx = 0; jx < MAX_DIST_NUM; jx++) {
+            if (dist_temp == p_dist[jx][0]) {
+              p_dist[jx][1] ++;
+            }
+          }
+
+        }
+      }
     }
 
     fclose(fp);
@@ -107,4 +152,3 @@ long convertToInt(char *arg)
     }
     return number;
 }
-
