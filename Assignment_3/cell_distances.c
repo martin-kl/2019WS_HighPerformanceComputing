@@ -76,8 +76,6 @@ int main(int argc, char *argv[])
 
         for (size_t ix = 0; ix < FIXED_BLOCK_SIZE; ix++) {
 
-          fixed_points[ix] = allowed_block[ix]; // initializing fixed block
-
           for (size_t kx = 1; kx < ALLOWED_BLOCK_SIZE - ix; kx++) {
 
             dist_temp = fixed_points[ix] - allowed_block[kx + ix]; // calculating distances from each element of fixed block to all the elements of the current allowed block
