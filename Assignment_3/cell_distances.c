@@ -65,17 +65,21 @@ int main(int argc, char *argv[])
     }
     //store current distance
     float dist_temp;
-    size_t read_block_items;
-    size_t read_fixed_items;
+    size_t read_items;
 
+<<<<<<< HEAD
     size_t ix = 0;
     size_t jx = 1;
     while ((read_fixed_items = fread(fixed_points, sizeof(char), FIXED_BLOCK_SIZE, fp)) > 0) {
+=======
+    while ((read_items = fread(allowed_block, sizeof(char), ALLOWED_BLOCK_SIZE, fp)) > 0){
+>>>>>>> parent of a880bfc... Update cell_distances.c
 
-      while ((read_block_items = fread(allowed_block, sizeof(char), ALLOWED_BLOCK_SIZE, fp)) > 0){
+      printf("%s ", allowed_block);
 
-        printf("%s ", allowed_block);
+      for (size_t ix = 0; ix < FIXED_BLOCK_SIZE; ix++) {
 
+<<<<<<< HEAD
         dist_temp = fixed_points[ix] - allowed_block[jx + ix]; // calculating distances from each element of fixed block to all the elements of the current allowed block
 
 <<<<<<< HEAD
@@ -85,20 +89,25 @@ int main(int argc, char *argv[])
           p_dist[kx][1] ++;
 =======
           fixed_points[ix] = allowed_block[ix]; // initializing fixed block
+=======
+        fixed_points[ix] = allowed_block[ix]; // initializing fixed block
 
-          for (size_t kx = 1; kx < ALLOWED_BLOCK_SIZE - ix; kx++) {
+        for (size_t kx = 1; kx < ALLOWED_BLOCK_SIZE - ix; kx++) {
+>>>>>>> parent of a880bfc... Update cell_distances.c
 
-            dist_temp = fixed_points[ix] - allowed_block[kx + ix]; // calculating distances from each element of fixed block to all the elements of the current allowed block
+          dist_temp = fixed_points[ix] - allowed_block[kx + ix]; // calculating distances from each element of fixed block to all the elements of the current allowed block
 
-            //counting specific distance
-            for (size_t jx = 0; jx < MAX_DIST_NUM; jx++) {
-              if (dist_temp == p_dist[jx][0]) {
-                p_dist[jx][1] ++;
-              }
+          //counting specific distance
+          for (size_t jx = 0; jx < MAX_DIST_NUM; jx++) {
+            if (dist_temp == p_dist[jx][0]) {
+              p_dist[jx][1] ++;
             }
-
           }
+<<<<<<< HEAD
 >>>>>>> parent of 1ec7163... Update cell_distances.c
+=======
+
+>>>>>>> parent of a880bfc... Update cell_distances.c
         }
       }
 
@@ -106,7 +115,6 @@ int main(int argc, char *argv[])
     }
     ix ++;
   }
-
 
     fclose(fp);
     exit(EXIT_SUCCESS);
