@@ -78,10 +78,27 @@ int main(int argc, char *argv[])
 
         dist_temp = fixed_points[ix] - allowed_block[jx + ix]; // calculating distances from each element of fixed block to all the elements of the current allowed block
 
+<<<<<<< HEAD
         //counting specific distance
         for (size_t kx = 0; kx < MAX_DIST_NUM; kx++) {
           if (dist_temp == p_dist[kx][0]) {
           p_dist[kx][1] ++;
+=======
+          fixed_points[ix] = allowed_block[ix]; // initializing fixed block
+
+          for (size_t kx = 1; kx < ALLOWED_BLOCK_SIZE - ix; kx++) {
+
+            dist_temp = fixed_points[ix] - allowed_block[kx + ix]; // calculating distances from each element of fixed block to all the elements of the current allowed block
+
+            //counting specific distance
+            for (size_t jx = 0; jx < MAX_DIST_NUM; jx++) {
+              if (dist_temp == p_dist[jx][0]) {
+                p_dist[jx][1] ++;
+              }
+            }
+
+          }
+>>>>>>> parent of 1ec7163... Update cell_distances.c
         }
       }
 
