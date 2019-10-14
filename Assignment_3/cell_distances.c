@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
           for (size_t kx = 0; kx < read_block_items;kx++) {
 
             fscanf(allowed_block, "%f %f %f", &x1[kx], &y1[kx], &z1[kx]);
-            dist_temp = calc_distance(x0,y0,z0,x1,y1,z1); //
+            dist_temp = calc_distance(x0[ix],y0[ix],z0[ix],x1[kx],y1[kx],z1[kx]); //calc_distance should return the "integer" distance (the float distance *100)
             //counting specific distance
             p_dist[dist_temp] ++;
           }
