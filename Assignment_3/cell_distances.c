@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <omp.h>
+#include <math.h>
 
 #define FILENAME "cells"
 #define MAX_DIST_NUM 3466
@@ -14,7 +15,7 @@
 
 void parseArguments(int argc, char *argv[], char *progname, short unsigned *threads);
 long convertToInt(char *arg);
-int calc_distance(float x0, float y0,float z0, float x1,float y1, float z1);
+float calc_distance(float x0, float y0,float z0, float x1,float y1, float z1);
 
 
 
@@ -65,6 +66,7 @@ int main(int argc, char *argv[])
     }
     //store current distance
     float dist_temp;
+    int index = 0;
     size_t read_block_items;
     size_t read_fixed_items;
     int count = 0;
@@ -74,26 +76,25 @@ int main(int argc, char *argv[])
     float x1[count];
     float y1[count];
     float z1[count];
+
     while ((read_fixed_items = fread(fixed_points, sizeof(char), NUM_CHAR*FIXED_BLOCK_SIZE, fp)) > 0) {
       count ++;
 
-
       while ((read_block_items = fread(allowed_block, sizeof(char), NUM_CHAR*ALLOWED_BLOCK_SIZE, fp)) > 0){
-        printf("allowed_block\n");
-        printf("%s ", allowed_block);
+        //printf("allowed_block\n");
+        //printf("%s ", allowed_block);
         //printf("\n");
-
 
         for (size_t ix = 0; ix < read_fixed_items; ix++) {
 
-          fscanf(fixed_points, "%f %f %f", &x0[ix], &y0[ix], &z0[ix]);
+          sscanf(fixed_points, "%f %f %f", &x0[ix], &y0[ix], &z0[ix]);
 
           for (size_t kx = 0; kx < read_block_items;kx++) {
 
-            fscanf(allowed_block, "%f %f %f", &x1[kx], &y1[kx], &z1[kx]);
+            sscanf(allowed_block, "%f %f %f", &x1[kx], &y1[kx], &z1[kx]);
             dist_temp = calc_distance(x0[ix],y0[ix],z0[ix],x1[kx],y1[kx],z1[kx]); //calc_distance should return the "integer" distance (the float distance *100)
-            //counting specific distance
-            p_dist[dist_temp] ++;
+            index = (int) 100*dist_temp;
+            p_dist[index] += 1;
           }
         }
       }
@@ -165,8 +166,8 @@ long convertToInt(char *arg)
     }
     return number;
 }
-int calc_distance(float x0, float y0,float z0, float x1,float y1, float z1){
+float calc_distance(float x0, float y0,float z0, float x1,float y1, float z1){
 
-
+  return  (sqrtf((x0 - x1)*(x0 - x1) + (y0 - y1)*(y0 - y1) + (z0 - z1)*(z0 - z1)));
 
 }
