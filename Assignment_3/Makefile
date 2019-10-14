@@ -10,7 +10,7 @@ all : cell_distances
 # $@ = target
 # $< = source
 cell_distances :
-	$(CC) $(CFLAGS) -fopenmp $(Cdistances) -o $@
+	$(CC) $(CFLAGS) -fopenmp $(Cdistances) -o $@ -lm
 
 # also removes all *.o files
 clean:
