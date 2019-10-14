@@ -70,20 +70,22 @@ int main(int argc, char *argv[])
     size_t read_block_items;
     size_t read_fixed_items;
     int count = 0;
-    float x0[count];
-    float y0[count];
-    float z0[count];
-    float x1[count];
-    float y1[count];
-    float z1[count];
+
 
     while ((read_fixed_items = fread(fixed_points, sizeof(char), NUM_CHAR*FIXED_BLOCK_SIZE, fp)) > 0) {
       count ++;
+      float x0[read_fixed_items];
+      float y0[read_fixed_items];
+      float z0[read_fixed_items];
+
 
       while ((read_block_items = fread(allowed_block, sizeof(char), NUM_CHAR*ALLOWED_BLOCK_SIZE, fp)) > 0){
         //printf("allowed_block\n");
         //printf("%s ", allowed_block);
         //printf("\n");
+        float x1[read_block_items];
+        float y1[read_block_items];
+        float z1[read_block_items];
 
         for (size_t ix = 0; ix < read_fixed_items; ix++) {
 
