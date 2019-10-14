@@ -7,13 +7,14 @@
 #include <omp.h>
 
 #define FILENAME "cells"
-#define MAX_DIST_NUM 2828
+#define MAX_DIST_NUM 3466
 #define ALLOWED_BLOCK_SIZE 10 // number of points allowed to load each time in order to not exceed 1Mb
 #define FIXED_BLOCK_SIZE 5 // number of chars in once
 #define NUM_CHAR 25 // number of chars per line i.e. per point
 
 void parseArguments(int argc, char *argv[], char *progname, short unsigned *threads);
 long convertToInt(char *arg);
+int calc_distance(int x0, int x2);
 
 
 
@@ -57,10 +58,10 @@ int main(int argc, char *argv[])
 
 
     //finding distances:
-    // creation of vector with all the possible distances stored in order: min 0.01 max 28.28
-    float p_dist[MAX_DIST_NUM][2];
+    // creation of vector with all the possible distances as indexes
+    float p_dist[MAX_DIST_NUM];
     for (size_t ix = 0; ix < MAX_DIST_NUM; ix++) {
-      p_dist[ix][0] += 0.01;
+      p_dist[ix] = 0;
     }
     //store current distance
     float dist_temp;
@@ -82,13 +83,11 @@ int main(int argc, char *argv[])
 
           for (size_t kx = 0; kx < (ALLOWED_BLOCK_SIZE - ix);kx++) {
 
-            dist_temp = fixed_points[ix] - allowed_block[kx]; // calculating distances from each element of fixed block to all the elements of the current allowed block
+            dist_temp = calc_distance(fixed_points[ix],allowed_block[kx]); // calculating distances from each element of fixed block to all the elements of the current allowed block
 
             //counting specific distance
-            for (size_t jx = 0; jx < MAX_DIST_NUM; jx++) {
-              if (dist_temp == p_dist[jx][0])
-                p_dist[jx][1] ++;
-            }
+            p_dist[integer_dist] ++;
+
 
           }
         }
@@ -160,4 +159,9 @@ long convertToInt(char *arg)
         exit(EXIT_FAILURE);
     }
     return number;
+}
+int calc_distance(int x0, int x2){
+
+
+
 }
