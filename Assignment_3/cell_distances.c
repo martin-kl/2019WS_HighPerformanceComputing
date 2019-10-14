@@ -14,7 +14,7 @@
 
 void parseArguments(int argc, char *argv[], char *progname, short unsigned *threads);
 long convertToInt(char *arg);
-int calc_distance(int x0, int x2);
+int calc_distance(float x0, float y0,float z0, float x1,float y1, float z1);
 
 
 
@@ -68,27 +68,32 @@ int main(int argc, char *argv[])
     size_t read_block_items;
     size_t read_fixed_items;
     int count = 0;
-
+    float x0[count];
+    float y0[count];
+    float z0[count];
+    float x1[count];
+    float y1[count];
+    float z1[count];
     while ((read_fixed_items = fread(fixed_points, sizeof(char), NUM_CHAR*FIXED_BLOCK_SIZE, fp)) > 0) {
-      printf("fixed_points\n");
-      printf("%s ", fixed_points);
       count ++;
+
 
       while ((read_block_items = fread(allowed_block, sizeof(char), NUM_CHAR*ALLOWED_BLOCK_SIZE, fp)) > 0){
         printf("allowed_block\n");
         printf("%s ", allowed_block);
         //printf("\n");
-        for (size_t ix = 0; ix < FIXED_BLOCK_SIZE; ix++) {
 
 
-          for (size_t kx = 0; kx < (ALLOWED_BLOCK_SIZE - ix);kx++) {
+        for (size_t ix = 0; ix < read_fixed_items; ix++) {
 
-            dist_temp = calc_distance(fixed_points[ix],allowed_block[kx]); // calculating distances from each element of fixed block to all the elements of the current allowed block
+          fscanf(fixed_points, "%f %f %f", &x0[ix], &y0[ix], &z0[ix]);
 
+          for (size_t kx = 0; kx < read_block_items;kx++) {
+
+            fscanf(allowed_block, "%f %f %f", &x1[kx], &y1[kx], &z1[kx]);
+            dist_temp = calc_distance(x0,y0,z0,x1,y1,z1); //
             //counting specific distance
-            p_dist[integer_dist] ++;
-
-
+            p_dist[dist_temp] ++;
           }
         }
       }
@@ -160,7 +165,7 @@ long convertToInt(char *arg)
     }
     return number;
 }
-int calc_distance(int x0, int x2){
+int calc_distance(float x0, float y0,float z0, float x1,float y1, float z1){
 
 
 
