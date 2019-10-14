@@ -8,8 +8,9 @@
 
 #define FILENAME "cells"
 #define MAX_DIST_NUM 2828
-#define ALLOWED_BLOCK_SIZE 20 // number of points allowed to load each time in order to not exceed 1Mb
-#define FIXED_BLOCK_SIZE 5
+#define ALLOWED_BLOCK_SIZE 10 // number of points allowed to load each time in order to not exceed 1Mb
+#define FIXED_BLOCK_SIZE 5 // number of chars in once
+#define NUM_CHAR 25 // number of chars per line i.e. per point
 
 void parseArguments(int argc, char *argv[], char *progname, short unsigned *threads);
 long convertToInt(char *arg);
@@ -22,8 +23,8 @@ int main(int argc, char *argv[])
 {
     char *progname;
     short unsigned threads;
-    char *allowed_block = malloc((ALLOWED_BLOCK_SIZE)*(7*sizeof(char)));
-
+    char *allowed_block = malloc((ALLOWED_BLOCK_SIZE)*(NUM_CHAR*sizeof(char)));
+    char *fixed_points = malloc((FIXED_BLOCK_SIZE)*(NUM_CHAR*sizeof(char)));
 
     FILE *fp;
     //TODO think about reading in points
@@ -56,8 +57,6 @@ int main(int argc, char *argv[])
 
 
     //finding distances:
-    // declaration and intialization of array to store fixed n points
-    float fixed_points[FIXED_BLOCK_SIZE];// have to be initialized afer each loop with the points in the next fixed block
     // creation of vector with all the possible distances stored in order: min 0.01 max 28.28
     float p_dist[MAX_DIST_NUM][2];
     for (size_t ix = 0; ix < MAX_DIST_NUM; ix++) {
@@ -67,32 +66,39 @@ int main(int argc, char *argv[])
     float dist_temp;
     size_t read_block_items;
     size_t read_fixed_items;
+    int count = 0;
 
-    while ((read_fixed_items = fread(fixed_points, sizeof(char), FIXED_BLOCK_SIZE, fp)) > 0) {
+    while ((read_fixed_items = fread(fixed_points, sizeof(char), NUM_CHAR*FIXED_BLOCK_SIZE, fp)) > 0) {
+      printf("fixed_points\n");
+      printf("%s ", fixed_points);
+      count ++;
 
-      while ((read_block_items = fread(allowed_block, sizeof(char), ALLOWED_BLOCK_SIZE, fp)) > 0){
-
+      while ((read_block_items = fread(allowed_block, sizeof(char), NUM_CHAR*ALLOWED_BLOCK_SIZE, fp)) > 0){
+        printf("allowed_block\n");
         printf("%s ", allowed_block);
-
+        //printf("\n");
         for (size_t ix = 0; ix < FIXED_BLOCK_SIZE; ix++) {
 
-          for (size_t kx = 1; kx < ALLOWED_BLOCK_SIZE - ix; kx++) {
 
-            dist_temp = fixed_points[ix] - allowed_block[kx + ix]; // calculating distances from each element of fixed block to all the elements of the current allowed block
+          for (size_t kx = 0; kx < (ALLOWED_BLOCK_SIZE - ix);kx++) {
+
+            dist_temp = fixed_points[ix] - allowed_block[kx]; // calculating distances from each element of fixed block to all the elements of the current allowed block
 
             //counting specific distance
             for (size_t jx = 0; jx < MAX_DIST_NUM; jx++) {
-              if (dist_temp == p_dist[jx][0]) {
+              if (dist_temp == p_dist[jx][0])
                 p_dist[jx][1] ++;
-              }
             }
 
           }
         }
       }
+      fseek(fp,count*NUM_CHAR*FIXED_BLOCK_SIZE,SEEK_SET);
+      //printf("\n");
     }
 
     free(allowed_block);
+    free(fixed_points);
     fclose(fp);
     exit(EXIT_SUCCESS);
 }
