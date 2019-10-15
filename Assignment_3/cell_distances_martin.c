@@ -36,20 +36,21 @@ int main(int argc, char *argv[])
     size_t number_of_characters, number_of_fixed_points, blocks;
     const int max_read_char = MAX_POINTS_PER_BLOCK * CHAR_PER_POINT;
 
-    //TODO check if this is necessary or slower / faster than memset
-    int distances[MAX_DISTANCES] = {0};
+    //has to be an int, short is too small
+    int distances[MAX_DISTANCES] = { 0 };
+    //store points as short, 3 * since we store the coordinates for a point after each other
+    //i.e.: x1 y1 z1 x2 y2 z2 ...
     short int fixed_points[3 * MAX_POINTS_PER_BLOCK];
 
     //get program name
     if (argc > 0)
-    {
         progname = argv[0];
-    }
     else
     {
         fprintf(stderr, "Error: no program name can be found\n");
         exit(EXIT_FAILURE);
     }
+
     parseArguments(argc, argv, progname, &threads);
     //set max number of threads for omp
     omp_set_num_threads(threads);
@@ -79,7 +80,6 @@ int main(int argc, char *argv[])
     {
         //printf("### ### #### #### #### #### #### ####\n");
         //printf("\t\tone block - starting\n");
-        //TODO check return value or not?
         number_of_fixed_points = read_and_parse_parallel(number_of_characters, fixed_points, fp);
         distance_within_block(number_of_fixed_points, fixed_points, distances);
     }
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
             //now read other block(s) and calculate distances between
             for (size_t block_j = block_i + 1; block_j < blocks; block_j++)
             {
-                size_t chars_in_block = max_read_char;
+                int chars_in_block = max_read_char;
                 size_t points_in_block = MAX_POINTS_PER_BLOCK;
                 int points_read;
 
@@ -109,17 +109,15 @@ int main(int argc, char *argv[])
                     points_in_block = chars_in_block % CHAR_PER_POINT;
                 }
 
-                //TODO check if this 3 * points_in_block works, otherwise take just MAX_POINTS_PER_BLOCK
+		//we only need 3 * the number of points in a block to store the coordinates
                 short block_points[3 * points_in_block];
-                if ((points_read = read_and_parse_parallel(chars_in_block, block_points, fp)) != points_in_block)
-                {
-                    fprintf(stderr, "Wanted to read %lu points but only read %d!\n", points_in_block, points_read);
-                }
+                points_read = read_and_parse_parallel(chars_in_block, block_points, fp);
+
                 //calculate distance
 #pragma omp parallel for reduction(+:distances[:MAX_DISTANCES])
                 for (size_t i = 0; i < number_of_fixed_points; ++i)
                 {
-                    for (size_t j = 0; j < points_in_block; ++j)
+                    for (size_t j = 0; j < points_read; ++j)
                     {
                         double dx = (fixed_points[3 * i] - block_points[3 * j]);
                         double dy = (fixed_points[3 * i + 1] - block_points[3 * j + 1]);
@@ -132,6 +130,7 @@ int main(int argc, char *argv[])
         }
     }
     fclose(fp);
+
     //printf("finished, now printing values:\n");
     for (size_t i = 0; i < MAX_DISTANCES; i++)
         if (distances[i] != 0)
@@ -142,14 +141,18 @@ int main(int argc, char *argv[])
 
 //--    methods              //////////////////////////////////////////////////
 
-int read_and_parse_parallel(int number_of_characters, short *points, FILE *fp)
+int read_and_parse_parallel(int n_chars_to_read, short *points, FILE *fp)
 {
     char buffer[MAX_POINTS_PER_BLOCK * CHAR_PER_POINT];
 
-    fread(buffer, number_of_characters, 1, fp);
-    int points_read = number_of_characters / CHAR_PER_POINT;
+    int chars_read = fread(buffer, sizeof(char), n_chars_to_read, fp);
+    if(chars_read != n_chars_to_read) {
+	fprintf(stderr, "Attention: wanted to read %d chars but read %d!\n", n_chars_to_read, chars_read);
+    }
+    int points_read = chars_read / CHAR_PER_POINT;
     //printf("read %d points, now starting to parse\n", points_read);
 
+    //we can safely use collapse here since we have no dependencies
 #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < points_read; i++)
     {
