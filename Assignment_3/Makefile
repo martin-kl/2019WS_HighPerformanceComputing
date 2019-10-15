@@ -1,9 +1,9 @@
 Cdistances	= cell_distances.c
 
 CC		= gcc
-CFLAGS	= -O2 -Wall
+CFLAGS	= -O2 -Wall -march=native
 
-.PHONY : clean clear
+.PHONY : clean
 
 all : cell_distances
 
@@ -15,7 +15,3 @@ cell_distances :
 # also removes all *.o files
 clean:
 	rm -f cell_distances $(FILES) *.o
-
-#TODO
-#clear:
-#	rm -f

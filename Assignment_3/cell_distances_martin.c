@@ -21,8 +21,16 @@ void parseArguments(int argc, char *argv[], char *progname, short unsigned *thre
 
 long convertToInt(char *arg);
 
-int read_and_parse_parallel(int number_of_characters, short *fixed_points, FILE *fp);
+/* Tries to read from the given file pointer n_chars_to_read characters and parses the coordinates.
+ * If less characters are read, the method prints an error to stderr.
+ * In either case, the really read number of points is returned.
+ * The parsed coordinates are stored in points.
+ */
+int read_and_parse_parallel(int n_chars_to_read, short *points, FILE *fp);
 
+/* Calculates the distance between all points in the given block.
+ * The block contains number_of_points points and the result is written into distances.
+ */
 static inline void distance_within_block(size_t number_of_points, short *points, int *distances);
 
 //--    main()              ///////////////////////////////////////////////////
