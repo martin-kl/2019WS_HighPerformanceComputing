@@ -1,4 +1,4 @@
-__kernel void diffusion (__global double *boxes, float diffusion_const) {
+__kernel void diffusion (__global double *heat_values, float diffusion_const) {
     
     //width and height with padding
     int width = get_global_size(0);
@@ -14,14 +14,17 @@ __kernel void diffusion (__global double *boxes, float diffusion_const) {
     if (ix == 0 || ix == width-1 || jx == 0 || jx == height-1)
         new_temp = 0;
     else 
-        new_temp = boxes[px] + diffusion_const * ( (boxes[px-1]+boxes[px+1]+boxes[px-width]+boxes[px+width])/4 - boxes[px] );
+        new_temp = heat_values[px] + diffusion_const * ( 
+                                (heat_values[px-1] + heat_values[px+1] + 
+                                    heat_values[px-width] + heat_values[px+width]
+                                )/4 - heat_values[px]);
 
     //If barrier is inside a loop, all work-items in a work-group must
     //execute the barrier for each iteration of the loop before they 
     //are allowed to continue execution beyond the barrier.
 
     barrier(CLK_GLOBAL_MEM_FENCE);
-    boxes[px] = new_temp;
+    heat_values[px] = new_temp;
 
     //The bug is: a work-group can synchronize internally, between work-items;
     //            but it cannot synchronize between work-groups.

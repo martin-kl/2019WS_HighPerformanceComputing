@@ -179,26 +179,26 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    //create memory buffers on the device (i.e. GPU)
-    cl_mem buffer_boxes = clCreateBuffer(context, CL_MEM_READ_WRITE,
+    //create memory buffers on the GPU
+    cl_mem buffer_values = clCreateBuffer(context, CL_MEM_READ_WRITE,
           sizeof(cl_double) * nmb_points_padding, NULL, &error);
     if (error != CL_SUCCESS) {
-        fprintf(stderr, "cannot create input memory buffer for boxes\n");
+        fprintf(stderr, "cannot create the memory buffer for the heat values\n");
         exit(EXIT_FAILURE);
     }
 
     //copy to the respective memory buffers
-    error = clEnqueueWriteBuffer(command_queue, buffer_boxes, CL_TRUE, 0,
+    error = clEnqueueWriteBuffer(command_queue, buffer_values, CL_TRUE, 0,
           sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
-        fprintf(stderr, "cannot write boxes to input buffer\n");
+        fprintf(stderr, "cannot write heat values to input buffer\n");
         exit(EXIT_FAILURE);
     }
 
     //set arguments of kernel
-    error = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buffer_boxes);
+    error = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buffer_values);
     if (error != CL_SUCCESS) {
-        fprintf(stderr, "cannot set kernel argument for buffer_boxes\n");
+        fprintf(stderr, "cannot set kernel argument for buffer_values\n");
         exit(EXIT_FAILURE);
     }
     error = clSetKernelArg(kernel, 1, sizeof(float), &diffusion_const);
@@ -219,55 +219,57 @@ int main(int argc, char *argv[])
         //check status when debugging
         //status = clFlush(command_queue);
         //status = clFinish(command_queue);
+        //printf("Status after kernel finishes: %d\n", status);
     }
 
-    //read buffer on device memory to host memory
-    error = clEnqueueReadBuffer(command_queue, buffer_boxes, CL_TRUE, 0,
+    //read buffer from GPU back into memory (heat_values)
+    error = clEnqueueReadBuffer(command_queue, buffer_values, CL_TRUE, 0,
           sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
-        fprintf(stderr, "cannot read from buffer\n");
+        fprintf(stderr, "cannot read results from buffer (GPU) back into memory\n");
         exit(EXIT_FAILURE);
     }
-    //print out the result boxes
+    //print out the result values
     //for (int h = 0; h < height; ++h) {
     //   for (int w = 0; w < width; ++w) {
-    //        printf("%g ", heat_values[h*width+w]);
+    //        printf("%g ", heat_values[h * width + w]);
     //    }
     //    printf("\n");
     //}
 
-    //block until all previously queued opencl commands have completed
+    //block until all queued OpenCL commands are finished
     status = clFinish(command_queue);
 
-    /*
-    printf("final values:\n");
+    printf("Final values:\n");
     for (size_t i = 1; i < height-1; i++) {
         for (size_t j = 1; j < width-1; j++) {
             printf("%f ", heat_values[i * width + j]);
         }
         printf("\n");
     }
-    */
 
-    printf("\n\n");
+    printf("\n");
+
     avg = 0;
     for (size_t i = 0; i < nmb_points_padding; ++i)
         avg += heat_values[i];
     avg /= nmb_points;
-    // print average temperature
-    printf("average: %g\n", avg);
     
+    printf("Deviations from avg temperature:\n");
     double diff;
     for (size_t i = 1; i < height-1; i++) {
         for (size_t j = 1; j < width-1; j++) {
             diff = heat_values[i * width + j] - avg;
-            printf("%f ",((diff < 0) ? (-diff) : diff));
+            printf("%g ",((diff < 0) ? (-diff) : diff));
         }
         printf("\n");
     }
 
+    // print average temperature
+    printf("\nAverage temperature: %g\n", avg);
 
-    clReleaseMemObject(buffer_boxes);
+
+    clReleaseMemObject(buffer_values);
     clReleaseKernel(kernel);
     clReleaseProgram(program);
     clReleaseCommandQueue(command_queue);
@@ -318,7 +320,7 @@ void parseArguments(int argc, char *argv[], char *progname, unsigned int *iterat
         }
     }
     //check for validity of arguments:
-    if (*iterations <= 0)
+    if (*iterations < 0)
     {
         fprintf(stderr, "Error: Number of iterations is invalid/missing!\n");
         exit(EXIT_FAILURE);
