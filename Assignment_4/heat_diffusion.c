@@ -29,9 +29,9 @@ int main(int argc, char *argv[])
     float diffusion_const;
 
     //variables
-    double avg;
+    double avg, avg_diff;
     size_t width, height, nmb_points, nmb_points_padding;
-    cl_float *heat_values;
+    cl_double *heat_values;
     char *kernel_code;
 
     // OpenCL specific variables
@@ -75,15 +75,15 @@ int main(int argc, char *argv[])
     height += 2;
     nmb_points_padding = width * height;
 
-    heat_values = (cl_float *) malloc(nmb_points_padding* sizeof(cl_float));
+    heat_values = (cl_double *) malloc(nmb_points_padding* sizeof(cl_double));
     if(heat_values == NULL) {
         fprintf(stderr, "Error on allocating memory for the heat values\n");
         exit(EXIT_FAILURE);
     }
     long unsigned row, col;
-    float value;
+    double value;
     while (!feof(fp_diffusion)) {
-        if(fscanf(fp_diffusion, "%lu %lu %f\n", &col, &row, &value) != 3) {
+        if(fscanf(fp_diffusion, "%lu %lu %lf\n", &col, &row, &value) != 3) {
             fprintf(stderr, "Error while parsing input values from diffusion file!\n");
             exit(EXIT_FAILURE);
         }
@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
 
     //create memory buffers on the GPU
     cl_mem buffer_values = clCreateBuffer(context, CL_MEM_READ_WRITE,
-          sizeof(cl_float) * nmb_points_padding, NULL, &error);
+          sizeof(cl_double) * nmb_points_padding, NULL, &error);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot create GPU memory buffer for heat values\n");
         exit(EXIT_FAILURE);
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 
     //copy to the respective memory buffers
     error = clEnqueueWriteBuffer(command_queue, buffer_values, CL_TRUE, 0,
-          sizeof(cl_float) * nmb_points_padding, heat_values, 0, NULL, NULL);
+          sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot write heat values to input buffer\n");
         exit(EXIT_FAILURE);
@@ -213,9 +213,14 @@ int main(int argc, char *argv[])
     }
 
     //execute opencl kernel
-    const size_t global[] = {width, height};
+    const size_t global[] = {width-2, height-2};
+    const size_t global_offset[] = {1, 1};
     for (size_t i = 0; i < iterations; i++) {
+        /*
         error = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL,
+            (const size_t *) &global, NULL, 0, NULL, NULL);
+            */
+        error = clEnqueueNDRangeKernel(command_queue, kernel, 2, global_offset,
             (const size_t *) &global, NULL, 0, NULL, NULL);
         if (error != CL_SUCCESS) {
             fprintf(stderr, "cannot execute kernel\n");
@@ -229,7 +234,7 @@ int main(int argc, char *argv[])
 
     //read buffer from GPU back into memory (heat_values)
     error = clEnqueueReadBuffer(command_queue, buffer_values, CL_TRUE, 0,
-          sizeof(cl_float) * nmb_points_padding, heat_values, 0, NULL, NULL);
+          sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot read results from buffer (GPU) back into memory\n");
         exit(EXIT_FAILURE);
@@ -255,25 +260,22 @@ int main(int argc, char *argv[])
     }
     */
 
-    printf("\n");
-
     avg = 0;
     for (size_t i = 0; i < nmb_points_padding; ++i)
         avg += heat_values[i];
     avg /= nmb_points;
-    
-    printf("Deviations from avg temperature:\n");
+    printf("average: %g\n", avg);
+
+    avg_diff = 0;
     double diff;
     for (size_t i = 1; i < height-1; i++) {
         for (size_t j = 1; j < width-1; j++) {
             diff = heat_values[i * width + j] - avg;
-            printf("%g ",((diff < 0) ? (-diff) : diff));
+            avg_diff += diff < 0 ? (-diff) : diff;
         }
-        printf("\n");
     }
-
-    // print average temperature
-    printf("\nAverage temperature: %g\n", avg);
+    avg_diff /= nmb_points;
+    printf("average absolute difference: %g\n", avg_diff);
 
 
     clReleaseMemObject(buffer_values);
