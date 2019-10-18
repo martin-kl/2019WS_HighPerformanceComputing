@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     //variables
     double avg;
     size_t width, height, nmb_points, nmb_points_padding;
-    cl_double*heat_values;
+    cl_float *heat_values;
     char *kernel_code;
 
     // OpenCL specific variables
@@ -75,15 +75,15 @@ int main(int argc, char *argv[])
     height += 2;
     nmb_points_padding = width * height;
 
-    heat_values = (cl_double *) malloc(nmb_points_padding* sizeof(cl_double));
+    heat_values = (cl_float *) malloc(nmb_points_padding* sizeof(cl_float));
     if(heat_values == NULL) {
         fprintf(stderr, "Error on allocating memory for the heat values\n");
         exit(EXIT_FAILURE);
     }
     long unsigned row, col;
-    double value;
+    float value;
     while (!feof(fp_diffusion)) {
-        if(fscanf(fp_diffusion, "%lu %lu %lf\n", &col, &row, &value) != 3) {
+        if(fscanf(fp_diffusion, "%lu %lu %f\n", &col, &row, &value) != 3) {
             fprintf(stderr, "Error while parsing input values from diffusion file!\n");
             exit(EXIT_FAILURE);
         }
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     fclose(fp_diffusion);
 
 
-
+    // #### #### #### basic init done, now create stuff for OpenCL #### #### #### ####
 
 
     // read kernel code into a string
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
     }
 
     //create opencl context
-    cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) platform_id, 0 };
+    cl_context_properties properties[] = {CL_CONTEXT_PLATFORM, (cl_context_properties) platform_id, 0};
     context = clCreateContext(properties, 1, &device_id, NULL, NULL, &error);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot create context\n");
@@ -154,12 +154,14 @@ int main(int argc, char *argv[])
     }
 
     //build the program
-    //error = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-    error = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+    //we can pass a target device, if we don't do it, it will automatically take the one from program
+    error = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
+    //error = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "Cannot build program. log:\n");
         size_t log_size = 0;
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
         char *log = calloc(log_size, sizeof(char));
         if (log == NULL) {
             fprintf(stderr, "Could not allocate memory for log!\n");
@@ -179,23 +181,26 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    // #### #### #### #### Kernel created, now create buffers #### #### #### #### ####
+
     //create memory buffers on the GPU
     cl_mem buffer_values = clCreateBuffer(context, CL_MEM_READ_WRITE,
-          sizeof(cl_double) * nmb_points_padding, NULL, &error);
+          sizeof(cl_float) * nmb_points_padding, NULL, &error);
     if (error != CL_SUCCESS) {
-        fprintf(stderr, "cannot create the memory buffer for the heat values\n");
+        fprintf(stderr, "cannot create GPU memory buffer for heat values\n");
         exit(EXIT_FAILURE);
     }
 
     //copy to the respective memory buffers
     error = clEnqueueWriteBuffer(command_queue, buffer_values, CL_TRUE, 0,
-          sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
+          sizeof(cl_float) * nmb_points_padding, heat_values, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot write heat values to input buffer\n");
         exit(EXIT_FAILURE);
     }
 
-    //set arguments of kernel
+    // #### #### #### #### set kernel arguments #### #### #### #### ####
+
     error = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buffer_values);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot set kernel argument for buffer_values\n");
@@ -209,7 +214,7 @@ int main(int argc, char *argv[])
 
     //execute opencl kernel
     const size_t global[] = {width, height};
-    for (size_t i = 0; i < iterations; ++i) {
+    for (size_t i = 0; i < iterations; i++) {
         error = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL,
             (const size_t *) &global, NULL, 0, NULL, NULL);
         if (error != CL_SUCCESS) {
@@ -224,7 +229,7 @@ int main(int argc, char *argv[])
 
     //read buffer from GPU back into memory (heat_values)
     error = clEnqueueReadBuffer(command_queue, buffer_values, CL_TRUE, 0,
-          sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
+          sizeof(cl_float) * nmb_points_padding, heat_values, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot read results from buffer (GPU) back into memory\n");
         exit(EXIT_FAILURE);
@@ -240,6 +245,7 @@ int main(int argc, char *argv[])
     //block until all queued OpenCL commands are finished
     status = clFinish(command_queue);
 
+    /*
     printf("Final values:\n");
     for (size_t i = 1; i < height-1; i++) {
         for (size_t j = 1; j < width-1; j++) {
@@ -247,6 +253,7 @@ int main(int argc, char *argv[])
         }
         printf("\n");
     }
+    */
 
     printf("\n");
 

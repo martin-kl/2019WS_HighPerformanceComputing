@@ -1,4 +1,4 @@
-__kernel void diffusion (__global double *heat_values, float diffusion_const) {
+__kernel void diffusion (__global float *heat_values, float diffusion_const) {
     
     //width and height with padding
     int width = get_global_size(0);
@@ -8,7 +8,7 @@ __kernel void diffusion (__global double *heat_values, float diffusion_const) {
     int jx = get_global_id(1);
 
     int px = jx*width + ix;
-    double new_temp;
+    float new_temp;
 
     //update temperature new_temp
     if (ix == 0 || ix == width-1 || jx == 0 || jx == height-1)
