@@ -213,10 +213,15 @@ int main(int argc, char *argv[])
     }
 
     //execute opencl kernel
+    //const size_t global[] = {width, height};
+
+    //for version with offset:
     const size_t global[] = {width-2, height-2};
     const size_t global_offset[] = {1, 1};
+
     for (size_t i = 0; i < iterations; i++) {
         /*
+        //normal version using no offset
         error = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL,
             (const size_t *) &global, NULL, 0, NULL, NULL);
             */
@@ -239,13 +244,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "cannot read results from buffer (GPU) back into memory\n");
         exit(EXIT_FAILURE);
     }
-    //print out the result values
-    //for (int h = 0; h < height; ++h) {
-    //   for (int w = 0; w < width; ++w) {
-    //        printf("%g ", heat_values[h * width + w]);
-    //    }
-    //    printf("\n");
-    //}
 
     //block until all queued OpenCL commands are finished
     status = clFinish(command_queue);
