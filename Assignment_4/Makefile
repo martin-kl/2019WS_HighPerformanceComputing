@@ -15,4 +15,4 @@ heat_diffusion :
 
 # also removes all *.o files
 clean:
-	rm -f heat_diffusion $(FILES) *.o
+	rm -f heat_diffusion *.o

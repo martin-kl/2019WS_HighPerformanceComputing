@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     fclose(fp_diffusion);
 
 
-    // #### #### #### basic init done, now create stuff for OpenCL #### #### #### ####
+    // #### #### #### basic init done, now create stuff for OpenCL #### #### ####
 
 
     // read kernel code into a string
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    //create a command queue
+    //create command queue
     command_queue = clCreateCommandQueue(context, device_id, 0, &error);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot create commamd queue\n");
@@ -154,11 +154,12 @@ int main(int argc, char *argv[])
     }
 
     //build the program
-    //we can pass a target device, if we don't do it, it will automatically take the one from program
+    //we can pass a target device, if we don't do it it will automatically take the one from program
     error = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
+    //this would be without specifying a device
     //error = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (error != CL_SUCCESS) {
-        fprintf(stderr, "Cannot build program. log:\n");
+        fprintf(stderr, "Cannot build program. Creating log...\n");
         size_t log_size = 0;
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
 
@@ -168,7 +169,7 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-        fprintf(stderr, "%s\n", log);
+        fprintf(stderr, "Log:\n%s\n", log);
         free(log);
         exit(EXIT_FAILURE);
     }
@@ -181,7 +182,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // #### #### #### #### Kernel created, now create buffers #### #### #### #### ####
+    // #### #### #### #### Kernel created, now create buffers #### #### #### ####
 
     //create memory buffers on the GPU
     cl_mem buffer_values = clCreateBuffer(context, CL_MEM_READ_WRITE,
@@ -199,7 +200,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // #### #### #### #### set kernel arguments #### #### #### #### ####
+    // #### #### #### #### set kernel arguments #### #### #### ####
 
     error = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buffer_values);
     if (error != CL_SUCCESS) {
@@ -212,10 +213,10 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    //execute opencl kernel
+    //execute opencl kernel (without using offsets)
     //const size_t global[] = {width, height};
 
-    //for version with offset:
+    //version with offset:
     const size_t global[] = {width-2, height-2};
     const size_t global_offset[] = {1, 1};
 
@@ -232,7 +233,6 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
         //check status when debugging
-        //status = clFlush(command_queue);
         //status = clFinish(command_queue);
         //printf("Status after kernel finishes: %d\n", status);
     }

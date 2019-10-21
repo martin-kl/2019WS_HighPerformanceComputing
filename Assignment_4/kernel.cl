@@ -7,6 +7,8 @@ __kernel void diffusion (__global double *heat_values, const float diffusion_con
     //increment width by 2 to include padding
     width += 2;
 
+    //the caller specifies an offset in clEnqueueNDRangeKernel
+    //therefore ix & jx are never on the border
     int ix = get_global_id(0);
     int jx = get_global_id(1);
 
@@ -17,7 +19,7 @@ __kernel void diffusion (__global double *heat_values, const float diffusion_con
                     heat_values[px-width] + heat_values[px+width]
                 )/4 - heat_values[px]);
 
-    //wait for others
+    //wait for others s.t. we don't override the value if another thread has potentially not read it yet
     barrier(CLK_GLOBAL_MEM_FENCE);
     heat_values[px] = new_temp;
 }
