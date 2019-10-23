@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
         for (size_t block_i = 0; block_i < blocks; block_i++)
         {
             //jump to position in file
-            fseek(fp, block_i * max_read_char, SEEK_SET);
+            //fseek(fp, block_i * max_read_char, SEEK_SET);
             number_of_fixed_points = read_and_parse_naive(max_read_char, fixed_points, fp);
             printf("Read %lu points in block #%lu!\n", number_of_fixed_points, block_i + 1);
             //distance_within_block(number_of_fixed_points, fixed_points, distances);
@@ -82,20 +82,22 @@ int main(int argc, char *argv[])
 
 int read_and_parse_naive(int n_chars_to_read, short points[][3], FILE *fp)
 {
+    float fpoints[3];
     size_t i = 0;
-    for (;;)
+    while(n_chars_to_read >= CHAR_PER_POINT)
     {
         //size_t k = i * CHAR_PER_POINT + j * CHAR_PER_COORDINATE;
-        float fpoints[3];
         if (fscanf(fp, "%f %f %f\n", &fpoints[0], &fpoints[1], &fpoints[2]) == EOF)
         {
+            //printf("\t\tbreaking now\n");
             break;
         }
+        n_chars_to_read -= CHAR_PER_POINT;
         //printf("%f, %f, %f - ", fpoints[0], fpoints[1], fpoints[2]);
         points[i][0] = (short)(fpoints[0] * 1000);
         points[i][1] = (short)(fpoints[1] * 1000);
         points[i][2] = (short)(fpoints[2] * 1000);
-        //printf("(%d, %d, %d)\n", points[i][0], points[i][1], points[i][2]);
+        //printf("reading number %lu: (%d, %d, %d)\n", i, points[i][0], points[i][1], points[i][2]);
         i++;
     }
     return i;

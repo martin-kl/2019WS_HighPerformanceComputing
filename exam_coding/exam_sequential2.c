@@ -20,7 +20,7 @@
  * In either case, the really read number of points is returned.
  * The parsed coordinates are stored in points.
  */
-int read_and_parse_sequential(int n_chars_to_read, short points[][3], FILE *fp);
+int read_and_parse_sequential(int n_chars_to_read, short *points, FILE *fp);
 
 //--    main()              ///////////////////////////////////////////////////
 
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     //int distances[MAX_DISTANCES] = { 0 };
     //store points as short, 3 * since we store the coordinates for a point after each other
     //i.e.: x1 y1 z1 x2 y2 z2 ...
-    short int fixed_points[MAX_POINTS_PER_BLOCK][3];
+    short int fixed_points[3 * MAX_POINTS_PER_BLOCK];
 
     if ((fp = fopen(FILENAME, "r")) == NULL)
     {
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 
 //--    methods              //////////////////////////////////////////////////
 
-int read_and_parse_sequential(int n_chars_to_read, short points[][3], FILE *fp)
+int read_and_parse_sequential(int n_chars_to_read, short *points, FILE *fp)
 {
     char buffer[MAX_POINTS_PER_BLOCK * CHAR_PER_POINT];
 
@@ -105,13 +105,13 @@ int read_and_parse_sequential(int n_chars_to_read, short points[][3], FILE *fp)
         for (size_t j = 0; j < 3; j++)
         {
             size_t k = i * CHAR_PER_POINT + j * CHAR_PER_COORDINATE;
-            points[i][j] = (buffer[k + 1] - '0') * 10000 +
+            points[3 * i + j] = (buffer[k + 1] - '0') * 10000 +
                                 (buffer[k + 2] - '0') * 1000 +
                                 (buffer[k + 4] - '0') * 100 +
                                 (buffer[k + 5] - '0') * 10 +
                                 (buffer[k + 6] - '0');
             if (buffer[k] == '-')
-                points[i][j] *= -1;
+                points[3 * i + j] *= -1;
         }
     }
     return points_read;
