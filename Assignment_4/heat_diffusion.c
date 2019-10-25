@@ -185,16 +185,14 @@ int main(int argc, char *argv[])
     // #### #### #### #### Kernel created, now create buffers #### #### #### ####
 
     //create memory buffers on the GPU
-    cl_mem buffer_values = clCreateBuffer(context, CL_MEM_READ_WRITE,
-          sizeof(cl_double) * nmb_points_padding, NULL, &error);
+    cl_mem buffer_values = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(cl_double) * nmb_points_padding, NULL, &error);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot create GPU memory buffer for heat values\n");
         exit(EXIT_FAILURE);
     }
 
     //copy to the respective memory buffers
-    error = clEnqueueWriteBuffer(command_queue, buffer_values, CL_TRUE, 0,
-          sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
+    error = clEnqueueWriteBuffer(command_queue, buffer_values, CL_TRUE, 0, sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot write heat values to input buffer\n");
         exit(EXIT_FAILURE);
@@ -226,8 +224,7 @@ int main(int argc, char *argv[])
         error = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL,
             (const size_t *) &global, NULL, 0, NULL, NULL);
             */
-        error = clEnqueueNDRangeKernel(command_queue, kernel, 2, global_offset,
-            (const size_t *) &global, NULL, 0, NULL, NULL);
+        error = clEnqueueNDRangeKernel(command_queue, kernel, 2, global_offset, (const size_t *) &global, NULL, 0, NULL, NULL);
         if (error != CL_SUCCESS) {
             fprintf(stderr, "cannot execute kernel\n");
             exit(EXIT_FAILURE);
@@ -238,8 +235,7 @@ int main(int argc, char *argv[])
     }
 
     //read buffer from GPU back into memory (heat_values)
-    error = clEnqueueReadBuffer(command_queue, buffer_values, CL_TRUE, 0,
-          sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
+    error = clEnqueueReadBuffer(command_queue, buffer_values, CL_TRUE, 0, sizeof(cl_double) * nmb_points_padding, heat_values, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "cannot read results from buffer (GPU) back into memory\n");
         exit(EXIT_FAILURE);
