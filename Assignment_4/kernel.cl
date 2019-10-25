@@ -17,7 +17,7 @@ __kernel void diffusion (__global double *heat_values, const float diffusion_con
     double new_temp = heat_values[px] + diffusion_const * ( 
                 (heat_values[px-1] + heat_values[px+1] + 
                     heat_values[px-width] + heat_values[px+width]
-                )/4 - heat_values[px]);
+                )*0.25 - heat_values[px]);
 
     //wait for others s.t. we don't override the value if another thread has potentially not read it yet
     barrier(CLK_GLOBAL_MEM_FENCE);
